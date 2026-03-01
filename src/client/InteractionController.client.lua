@@ -252,7 +252,12 @@ cauldronGui.MainFrame.BrewBtn.MouseButton1Click:Connect(function()
             badge.BackgroundColor3 = rc[result.rarity] or Color3.fromRGB(100, 80, 150)
         end
         startBrewTimer(result.brewDuration, result.endUnix)
-    else
+
+        -- Fire VFX event
+        local brewEvent = game.ReplicatedStorage:FindFirstChild("BrewStateEvent")
+        if brewEvent then
+            brewEvent:Fire("start", { duration = result.brewDuration, endUnix = result.endUnix, rarity = result.rarity })
+        end    else
         resultLabel.Text = result and result.error or "Brew failed!"
         resultLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         task.delay(3, function() resultLabel.Visible = false end)
