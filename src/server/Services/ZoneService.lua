@@ -8,7 +8,7 @@ local Remotes = RS.Remotes
 local forageCooldowns = {}
 
 -- Common ingredients that can be foraged
-local FORAGEABLE = {"mushroom", "fern_leaf", "river_water", "dewdrop", "moss_clump", "wind_blossom"}
+local FORAGEABLE = {"mushroom", "fern_leaf", "river_water", "charcoal_chunk", "dandelion_puff", "clay_mud", "pebble_dust", "mint_sprig", "snail_slime", "willow_bark", "rainwater", "acorn_cap", "cobweb_strand"}
 
 -- ForageNode handler
 Remotes.ForageNode.OnServerEvent:Connect(function(player, nodeId)
@@ -37,7 +37,11 @@ Remotes.ForageNode.OnServerEvent:Connect(function(player, nodeId)
     
     -- Award random common ingredient
     local ingredientId = FORAGEABLE[math.random(1, #FORAGEABLE)]
-    data.Ingredients[ingredientId] = (data.Ingredients[ingredientId] or 0) + 1
+    -- V3: Add as fresh stack
+    local pdsModule = _G.PlayerDataService
+    if pdsModule and pdsModule.addIngredientStack then
+        pdsModule.addIngredientStack(data, ingredientId, 1, "forage")
+    end
     
     local ingredient = Ingredients.Data[ingredientId]
     print("[ZoneService] " .. player.Name .. " foraged " .. ingredient.name .. " from node " .. nodeId)
