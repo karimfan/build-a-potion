@@ -7,10 +7,13 @@ local Remotes = RS.Remotes
 
 local player = game.Players.LocalPlayer
 
--- Create BindableEvent for brew state communication
-local brewEvent = Instance.new("BindableEvent")
-brewEvent.Name = "BrewStateEvent"
-brewEvent.Parent = RS
+-- Find the pre-created BindableEvent for brew state communication
+local brewEvent = RS:WaitForChild("BrewStateEvent", 10)
+if not brewEvent then
+    brewEvent = Instance.new("BindableEvent")
+    brewEvent.Name = "BrewStateEvent"
+    brewEvent.Parent = RS
+end
 
 local cauldron, cauldronLiquid, spoon, cauldronGlow
 local isAnimating = false

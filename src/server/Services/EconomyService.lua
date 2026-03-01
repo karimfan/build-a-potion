@@ -57,7 +57,25 @@ Remotes.BuyIngredient.OnServerEvent:Connect(function(player, ingredientId, quant
     
     -- Execute transaction
     data.Coins = data.Coins - totalCost
-    data.Ingredients[ingredientId] = (data.Ingredients[ingredientId] or 0) + quantity
+    -- V3: Add as fresh stack
+    local pdsModule = _G.PlayerDataService
+    if pdsModule and pdsModule.addIngredientStack then
+        pdsModule.addIngredientStack(data, ingredientId, quantity, "market")
+    else
+        -- Fallback for compatibility
+        if not data.Ingredients[ingredientId] then
+            data.Ingredients[ingredientId] = { stacks = {} }
+        end
+        local config = Ingredients.Data[ingredientId]
+        local shelfHours = config and config.freshness and config.freshness.shelfLifeHours or 24
+        local now = os.time()
+        table.insert(data.Ingredients[ingredientId].stacks, {
+            amount = quantity,
+            acquiredUnix = now,
+            expiresUnix = now + (shelfHours * 3600),
+            source = "market",
+        })
+    end
     
     print("[EconomyService] " .. player.Name .. " bought " .. quantity .. "x " .. ingredient.name .. " for " .. totalCost .. " coins")
     
@@ -108,4 +126,3 @@ Remotes.SellPotion.OnServerEvent:Connect(function(player, potionId, quantity)
 end)
 
 print("[EconomyService] Initialized")
-

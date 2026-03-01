@@ -51,8 +51,10 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
     end
     
     -- Validate player owns both ingredients
-    local owned1 = data.Ingredients[ingredientId1] or 0
-    local owned2 = data.Ingredients[ingredientId2] or 0
+    -- V3: Get ingredient counts from stacks
+    local pdsUtil = _G.PlayerDataService
+    local owned1 = pdsUtil and pdsUtil.getIngredientCount(data, ingredientId1) or 0
+    local owned2 = pdsUtil and pdsUtil.getIngredientCount(data, ingredientId2) or 0
     
     if ingredientId1 == ingredientId2 then
         if owned1 < 2 then
@@ -68,20 +70,19 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
     end
     
     -- Consume ingredients atomically
+    -- V3: Consume from stacks (FIFO - oldest first)
+    local freshness1, freshness2 = 1.0, 1.0
     if ingredientId1 == ingredientId2 then
-        data.Ingredients[ingredientId1] = owned1 - 2
+        local consumed, avgFresh = pdsUtil.consumeIngredientFIFO(data, ingredientId1, 2)
+        freshness1 = avgFresh
+        freshness2 = avgFresh
     else
-        data.Ingredients[ingredientId1] = owned1 - 1
-        data.Ingredients[ingredientId2] = owned2 - 1
+        local c1, f1 = pdsUtil.consumeIngredientFIFO(data, ingredientId1, 1)
+        local c2, f2 = pdsUtil.consumeIngredientFIFO(data, ingredientId2, 1)
+        freshness1 = f1
+        freshness2 = f2
     end
-    
-    -- Clean up zero quantities
-    if data.Ingredients[ingredientId1] and data.Ingredients[ingredientId1] <= 0 then
-        data.Ingredients[ingredientId1] = nil
-    end
-    if ingredientId1 ~= ingredientId2 and data.Ingredients[ingredientId2] and data.Ingredients[ingredientId2] <= 0 then
-        data.Ingredients[ingredientId2] = nil
-    end
+    local avgFreshness = (freshness1 + freshness2) / 2
     
     -- Resolve recipe
     local potionId = Recipes.lookup(ingredientId1, ingredientId2)
@@ -268,4 +269,3 @@ Remotes.GetActiveBrewState.OnServerInvoke = function(player)
 end
 
 print("[BrewingService] Initialized (Sprint 003 - Timed Brewing)")
-

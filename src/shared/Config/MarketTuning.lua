@@ -29,4 +29,3 @@ MarketTuning.TierRules = {
 }
 
 return MarketTuning
-

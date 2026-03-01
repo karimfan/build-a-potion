@@ -47,13 +47,72 @@ Ingredients have 4 properties: Element (Fire, Water, Earth, Air, Shadow, Light),
 
 **Ingredient Rarity Tiers**
 
-| Tier | Examples | Market Cost | Availability | Potion Value Multiplier |
-| :---- | :---- | :---- | :---- | :---- |
-| Common | Mushroom, Fern Leaf, River Water | 5–20 Coins | Always in stock | 1x |
-| Uncommon | Moonpetal, Ember Root, Crystal Dust | 50–150 Coins | 60% chance per refresh | 2.5x |
-| Rare | Dragon Scale, Phoenix Feather, Void Essence | 300–800 Coins | 15% chance per refresh | 8x |
-| Mythic | Starfall Shard, Leviathan Tear, Time Sand | 2,000–5,000 Coins | 3% chance per refresh | 25x |
-| Divine | Philosopher's Stone Fragment, Cosmic Ember | Robux Only or Event | Event/Premium only | 100x |
+Tier	Ingredient Name	Element	Market Cost (Coins)	Availability	Potion Value Mult.	Forageable?	Notes
+Common	Mushroom	Earth	5	Always in stock	1x	Yes	Starter ingredient, found in Wild Grove
+Common	Fern Leaf	Earth	8	Always in stock	1x	Yes	Basic herb, very common forage
+Common	River Water	Water	5	Always in stock	1x	Yes	Collected from streams in Wild Grove
+Common	Charcoal Chunk	Fire	10	Always in stock	1x	Yes	Burnt wood fragments
+Common	Dandelion Puff	Air	7	Always in stock	1x	Yes	Floats away if not caught quickly
+Common	Clay Mud	Earth	6	Always in stock	1x	Yes	Scooped from riverbanks
+Common	Honey Drop	Light	12	Always in stock	1x	No	Sweet base for many beginner potions
+Common	Pebble Dust	Earth	5	Always in stock	1x	Yes	Ground-up river stones
+Common	Mint Sprig	Air	9	Always in stock	1x	Yes	Refreshing herb, grows everywhere
+Common	Firefly Glow	Light	15	Always in stock	1x	No	Captured at dusk in Wild Grove
+Common	Snail Slime	Water	8	Always in stock	1x	Yes	Oddly useful binding agent
+Common	Willow Bark	Earth	10	Always in stock	1x	Yes	Stripped from grove trees
+Common	Rainwater	Water	5	Always in stock	1x	Yes	Collected during rain events
+Common	Acorn Cap	Earth	7	Always in stock	1x	Yes	Tiny but potent container
+Common	Cobweb Strand	Shadow	12	Always in stock	1x	Yes	Found in dark corners of the grove
+Uncommon	Moonpetal	Light	50	60% chance per refresh	2.5x	No	Blooms only under moonlight cycles
+Uncommon	Ember Root	Fire	75	60% chance per refresh	2.5x	No	Warm to the touch, glows faintly
+Uncommon	Crystal Dust	Earth	100	60% chance per refresh	2.5x	No	Shimmering powder from cave crystals
+Uncommon	Frost Bloom	Water	80	60% chance per refresh	2.5x	No	Ice flower that never melts
+Uncommon	Thundermoss	Air	65	60% chance per refresh	2.5x	No	Crackles with static electricity
+Uncommon	Shadow Vine	Shadow	90	60% chance per refresh	2.5x	No	Writhing plant from dark places
+Uncommon	Sunstone Chip	Fire	110	60% chance per refresh	2.5x	No	Fragment of a sun-warmed boulder
+Uncommon	Dewdrop Pearl	Water	70	60% chance per refresh	2.5x	No	Morning dew crystallized into a bead
+Uncommon	Iron Filings	Earth	55	60% chance per refresh	2.5x	No	Magnetic shavings with binding power
+Uncommon	Pixie Wing	Air	120	55% chance per refresh	2.5x	No	Iridescent and feather-light
+Uncommon	Glowshroom Cap	Light	95	60% chance per refresh	2.5x	No	Bioluminescent mushroom variant
+Uncommon	Sulfur Nugget	Fire	60	60% chance per refresh	2.5x	No	Pungent but powerful catalyst
+Uncommon	Mermaid Scale	Water	130	50% chance per refresh	2.5x	No	Shed scale, shimmers in water
+Uncommon	Nightshade Berry	Shadow	85	60% chance per refresh	2.5x	No	Dark purple, handle with care
+Uncommon	Wind Whistle Reed	Air	70	60% chance per refresh	2.5x	No	Hums when exposed to breeze
+Rare	Dragon Scale	Fire	500	15% chance per refresh	8x	No	Shed by young drakes, extremely durable
+Rare	Phoenix Feather	Fire	650	12% chance per refresh	8x	No	Warm, regenerates slowly over time
+Rare	Void Essence	Shadow	800	10% chance per refresh	8x	No	Bottled fragment of pure darkness
+Rare	Unicorn Tear	Light	700	12% chance per refresh	8x	No	Purifying liquid, extremely precious
+Rare	Stormglass Shard	Air	550	15% chance per refresh	8x	No	Lightning-struck glass, holds charge
+Rare	Kraken Ink	Water	600	13% chance per refresh	8x	No	Deep-sea ink with transformative power
+Rare	Lava Pearl	Fire	750	10% chance per refresh	8x	No	Formed inside volcanic vents
+Rare	Frozen Amber	Water	450	15% chance per refresh	8x	No	Ancient resin preserved in permafrost
+Rare	Ghost Orchid	Shadow	500	14% chance per refresh	8x	No	Transparent flower, phases in and out
+Rare	Titan Bone Dust	Earth	700	11% chance per refresh	8x	No	Ground remains of ancient giants
+Rare	Comet Tail Ash	Air	650	12% chance per refresh	8x	No	Swept up after meteor showers
+Rare	Basilisk Fang	Earth	800	10% chance per refresh	8x	No	Petrifying venom still active
+Rare	Siren Song Echo	Water	550	14% chance per refresh	8x	No	Captured sound wave in a crystal vial
+Rare	Eclipse Petal	Shadow	600	13% chance per refresh	8x	No	Only appears during solar events
+Rare	Celestial Dew	Light	700	11% chance per refresh	8x	No	Condensation from star-touched clouds
+Mythic	Starfall Shard	Light	3,000	3% chance per refresh	25x	No	Fragment of a fallen star
+Mythic	Leviathan Tear	Water	4,000	2% chance per refresh	25x	No	Wept by ancient sea creatures
+Mythic	Time Sand	Air	5,000	2% chance per refresh	25x	No	Flows upward, defies gravity
+Mythic	World Tree Bark	Earth	3,500	3% chance per refresh	25x	No	From the roots of the cosmic tree
+Mythic	Demon Heart Ember	Fire	4,500	2% chance per refresh	25x	No	Still beats with infernal heat
+Mythic	Abyssal Core	Shadow	5,000	1.5% chance per refresh	25x	No	Condensed void energy, warps nearby light
+Mythic	Angel Feather	Light	4,000	2.5% chance per refresh	25x	No	Weightless, emits a soft hum
+Mythic	Chrono Crystal	Air	4,500	2% chance per refresh	25x	No	Shows glimpses of other timelines
+Mythic	Behemoth Heartstone	Earth	3,500	3% chance per refresh	25x	No	Crystallized core of an ancient beast
+Mythic	Primordial Flame	Fire	5,000	1.5% chance per refresh	25x	No	Fire that has burned since creation
+Mythic	Dreamweaver Silk	Shadow	3,000	3% chance per refresh	25x	No	Spun from the fabric of dreams
+Mythic	Tidal Moonstone	Water	4,000	2% chance per refresh	25x	No	Controls nearby water, glows at night
+Divine	Philosopher's Stone Fragment	Earth	Robux Only	Event/Premium only	100x	No	The legendary transmutation catalyst
+Divine	Cosmic Ember	Fire	Robux Only	Event/Premium only	100x	No	A spark from the birth of a universe
+Divine	Wish Blossom	Light	Robux Only	Event/Premium only	100x	No	A flower that blooms once per century
+Divine	Oblivion Drop	Shadow	Event Reward	Event/Premium only	100x	No	A tear from the end of time
+Divine	Genesis Water	Water	Event Reward	Event/Premium only	100x	No	The first water to ever exist
+Divine	Eternal Gale Feather	Air	Robux Only	Event/Premium only	100x	No	Feather from a storm that never ends
+Divine	Heaven's Root	Earth	Seasonal Event	Event/Premium only	100x	No	Grows between realms
+Divine	Solar Flare Essence	Fire	Seasonal Event	Event/Premium only	100x	No	Captured sunburst energy
 
 ## **2.2 Brew Potions**
 

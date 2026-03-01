@@ -2,15 +2,15 @@ local BrewTuning = {}
 
 -- Brew timer by potion rarity (seconds)
 BrewTuning.TimerByRarity = {
-    Common = 60,
-    Uncommon = 90,
-    Rare = 120,
-    Mythic = 180,
+    Common = 15,
+    Uncommon = 25,
+    Rare = 40,
+    Mythic = 60,
     Divine = 300,
 }
 
 -- Sludge (failed brew) always uses Common timer
-BrewTuning.SludgeTimer = 60
+BrewTuning.SludgeTimer = 15
 
 -- VFX intensity multiplier by rarity
 BrewTuning.VFXMultiplier = {
@@ -50,4 +50,3 @@ function BrewTuning.getDuration(rarity)
 end
 
 return BrewTuning
-

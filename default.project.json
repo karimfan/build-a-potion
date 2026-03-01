@@ -77,6 +77,9 @@
         },
         "EnvironmentEvolution": {
           "$path": "src/client/EnvironmentEvolution.client.lua"
+        },
+        "IngredientVisualFactory": {
+          "$path": "src/client/IngredientVisualFactory.lua"
         }
       }
     }

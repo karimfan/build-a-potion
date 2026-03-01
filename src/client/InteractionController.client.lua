@@ -59,7 +59,16 @@ local function refreshCauldronIngredients()
         if child:IsA("TextButton") then child:Destroy() end
     end
     local order = 0
-    for ingredientId, qty in pairs(data.Ingredients) do
+    for ingredientId, entry in pairs(data.Ingredients) do
+        -- V3: compute total quantity from stacks
+        local qty = 0
+        if type(entry) == "number" then
+            qty = entry -- V2 fallback
+        elseif type(entry) == "table" and entry.stacks then
+            for _, stack in ipairs(entry.stacks) do
+                qty = qty + (stack.amount or 0)
+            end
+        end
         if qty > 0 then
             local ing = Ingredients.Data[ingredientId]
             if ing then
@@ -141,6 +150,10 @@ local function startBrewTimer(duration, endTime)
     isBrewing = true
     brewEndTime = endTime
     setBrewingUIState("brewing")
+    -- Close the GUI so player can watch the cauldron VFX in the world
+    task.delay(0.5, function()
+        cauldronGui.Enabled = false
+    end)
     local statusMessages = {
         "Your cauldron is bubbling...",
         "Ingredients are melding together...",
@@ -252,9 +265,9 @@ cauldronGui.MainFrame.BrewBtn.MouseButton1Click:Connect(function()
             badge.BackgroundColor3 = rc[result.rarity] or Color3.fromRGB(100, 80, 150)
         end
         startBrewTimer(result.brewDuration, result.endUnix)
-
+        
         -- Fire VFX event
-        local brewEvent = game.ReplicatedStorage:FindFirstChild("BrewStateEvent")
+        local brewEvent = game.ReplicatedStorage:WaitForChild("BrewStateEvent", 5)
         if brewEvent then
             brewEvent:Fire("start", { duration = result.brewDuration, endUnix = result.endUnix, rarity = result.rarity })
         end    else
@@ -481,4 +494,3 @@ Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(data)
 end)
 
 print("[InteractionController] Initialized - all interactions wired")
-
