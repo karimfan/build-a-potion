@@ -246,19 +246,30 @@ end
 function IngredientVisualFactory.renderInViewport(ingredientData, viewportFrame)
     -- Clear existing
     for _, child in ipairs(viewportFrame:GetChildren()) do
-        if child:IsA("Model") or child:IsA("Camera") then child:Destroy() end
+        if child:IsA("Model") or child:IsA("Camera") or child:IsA("WorldModel") then child:Destroy() end
     end
 
-    local model = IngredientVisualFactory.createModel(ingredientData)
-    model.Parent = viewportFrame
+    -- Set viewport lighting
+    viewportFrame.Ambient = Color3.fromRGB(180, 170, 200)
+    viewportFrame.LightColor = Color3.fromRGB(255, 250, 240)
+    viewportFrame.LightDirection = Vector3.new(-1, -1, -1)
+    viewportFrame.BackgroundColor3 = Color3.fromRGB(30, 25, 40)
+    viewportFrame.BackgroundTransparency = 0.5
 
-    -- Create and position camera
+    -- Use WorldModel for proper rendering
+    local worldModel = Instance.new("WorldModel")
+    worldModel.Parent = viewportFrame
+
+    local model = IngredientVisualFactory.createModel(ingredientData)
+    model.Parent = worldModel
+
+    -- Create and position camera looking at origin
     local cam = Instance.new("Camera")
-    cam.CFrame = CFrame.new(Vector3.new(2, 1.5, 2), Vector3.new(0, 0.5, 0))
+    cam.CFrame = CFrame.new(Vector3.new(1.8, 1.2, 1.8), Vector3.new(0, 0.5, 0))
+    cam.FieldOfView = 50
     cam.Parent = viewportFrame
     viewportFrame.CurrentCamera = cam
 
     return model
 end
-
 return IngredientVisualFactory

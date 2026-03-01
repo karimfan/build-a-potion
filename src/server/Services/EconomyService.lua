@@ -124,20 +124,12 @@ Remotes.SellPotion.OnServerEvent:Connect(function(player, potionId, quantity)
         end
     end
     local totalValue = baseSellValue * quantity
-    -- Apply Daily Demand bonus
-    if _G.DailyDemandService then
-        local demandMult = _G.DailyDemandService.getDemandMultiplier(potionId)
-        if demandMult > 1 then
-            totalValue = totalValue * demandMult
-        end
-    end
     data.Potions[potionId] = owned - quantity
     if data.Potions[potionId] <= 0 then
         data.Potions[potionId] = nil
     end
     data.Coins = data.Coins + totalValue
-    -- Track sell coins for score
-    if _G.ScoreService then _G.ScoreService.addSellCoins(data, totalValue) end    
+    
     print("[EconomyService] " .. player.Name .. " sold " .. quantity .. "x " .. potion.name .. " for " .. totalValue .. " coins")
     
     -- Notify client
