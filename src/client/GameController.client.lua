@@ -54,7 +54,7 @@ Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(data)
     local oldCoins = myData and myData.Coins or data.Coins
     myData = data
     updateHud()
-
+    
     -- Show coin change notification
     local diff = data.Coins - oldCoins
     if diff ~= 0 then
@@ -76,7 +76,7 @@ local function teleportToZone(zoneName)
     if not zone then return end
     local spawnPt = zone:FindFirstChild("SpawnPoint")
     if not spawnPt then return end
-
+    
     local character = player.Character
     if character then
         local hrp = character:FindFirstChild("HumanoidRootPart")
@@ -104,37 +104,28 @@ local marketState = nil
 local function refreshMarketUI()
     if not marketState then return end
     local list = marketGui.MainFrame.IngredientList
-
-    -- Clear existing items
+    
     for _, child in ipairs(list:GetChildren()) do
         if child:IsA("Frame") then child:Destroy() end
     end
-
-    -- Element background tints
+    
     local elementTints = {
-        Fire =   Color3.fromRGB(60, 30, 25),
-        Water =  Color3.fromRGB(25, 35, 60),
-        Earth =  Color3.fromRGB(45, 35, 25),
-        Air =    Color3.fromRGB(35, 45, 55),
-        Shadow = Color3.fromRGB(35, 25, 50),
-        Light =  Color3.fromRGB(55, 50, 30),
+        Fire = Color3.fromRGB(60, 30, 25), Water = Color3.fromRGB(25, 35, 60),
+        Earth = Color3.fromRGB(45, 35, 25), Air = Color3.fromRGB(35, 45, 55),
+        Shadow = Color3.fromRGB(35, 25, 50), Light = Color3.fromRGB(55, 50, 30),
     }
-
-    -- Rarity border colors
     local rarityBorderColors = {
-        Common =   Color3.fromRGB(100, 100, 100),
-        Uncommon = Color3.fromRGB(60, 140, 220),
-        Rare =     Color3.fromRGB(255, 200, 50),
-        Mythic =   Color3.fromRGB(200, 80, 255),
-        Divine =   Color3.fromRGB(255, 255, 220),
+        Common = Color3.fromRGB(100, 100, 100), Uncommon = Color3.fromRGB(60, 140, 220),
+        Rare = Color3.fromRGB(255, 200, 50), Mythic = Color3.fromRGB(200, 80, 255),
+        Divine = Color3.fromRGB(255, 255, 220),
     }
-
+    
     for i, offer in ipairs(marketState.Offers) do
         local ingData = Ingredients.Data[offer.ingredientId]
         local element = offer.element or "Earth"
         local tier = offer.tier or "Common"
-
-        -- Card frame with element-colored background
+        local borderColor = rarityBorderColors[tier] or rarityBorderColors.Common
+        
         local card = Instance.new("Frame")
         card.Name = "Offer_" .. offer.ingredientId
         card.Size = UDim2.new(1, 0, 0, 80)
@@ -142,50 +133,98 @@ local function refreshMarketUI()
         card.LayoutOrder = i
         card.Parent = list
         Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
-
-        -- Rarity border
-        local borderColor = rarityBorderColors[tier] or rarityBorderColors.Common
+        
         local stroke = Instance.new("UIStroke")
         stroke.Color = borderColor
         stroke.Thickness = tier == "Common" and 1 or (tier == "Uncommon" and 2 or 3)
         stroke.Parent = card
-
-        -- ViewportFrame for 3D ingredient preview
+        
+        -- 3D ViewportFrame preview
         local viewport = Instance.new("ViewportFrame")
         viewport.Size = UDim2.new(0, 65, 0, 65)
-        viewport.Position = UDim2.new(0, 10, 0, 10)
+        viewport.Position = UDim2.new(0, 8, 0, 8)
         viewport.BackgroundTransparency = 1
         viewport.Parent = card
         Instance.new("UICorner", viewport).CornerRadius = UDim.new(0, 8)
-
-        -- Render ingredient model in viewport
+        
         if ingData and IngredientVisualFactory then
             local ok, err = pcall(function()
                 IngredientVisualFactory.renderInViewport(ingData, viewport)
             end)
             if not ok then
-                warn("[Market] Viewport render failed for " .. tostring(offer.ingredientId) .. ": " .. tostring(err))
+                warn("[Market] Render failed: " .. tostring(offer.ingredientId) .. " - " .. tostring(err))
             end
-        else
-            -- Fallback: show colored circle if no visual data
-            local fallback = Instance.new("Frame")
-            fallback.Size = UDim2.new(0.8, 0, 0.8, 0)
-            fallback.Position = UDim2.new(0.1, 0, 0.1, 0)
-            fallback.BackgroundColor3 = Color3.fromRGB(100, 80, 150)
-            fallback.Parent = viewport
-            Instance.new("UICorner", fallback).CornerRadius = UDim.new(1, 0)
-        end        end)
-
+        end
+        
+        -- Name
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(0.45, -80, 0, 22)
+        nameLabel.Position = UDim2.new(0, 80, 0, 5)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = offer.name
+        nameLabel.TextColor3 = Color3.new(1, 1, 1)
+        nameLabel.TextScaled = true
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.Parent = card
+        
+        -- Tier + Element
+        local tierLabel = Instance.new("TextLabel")
+        tierLabel.Size = UDim2.new(0.4, -80, 0, 18)
+        tierLabel.Position = UDim2.new(0, 80, 0, 28)
+        tierLabel.BackgroundTransparency = 1
+        tierLabel.Text = tier .. " | " .. element
+        tierLabel.TextColor3 = borderColor
+        tierLabel.TextScaled = true
+        tierLabel.Font = Enum.Font.Gotham
+        tierLabel.TextXAlignment = Enum.TextXAlignment.Left
+        tierLabel.Parent = card
+        
+        -- Price + Stock
+        local priceLabel = Instance.new("TextLabel")
+        priceLabel.Size = UDim2.new(0, 140, 0, 18)
+        priceLabel.Position = UDim2.new(0, 80, 0, 50)
+        priceLabel.BackgroundTransparency = 1
+        priceLabel.Text = offer.price .. " coins | Stock: " .. offer.stock
+        priceLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+        priceLabel.TextScaled = true
+        priceLabel.Font = Enum.Font.Gotham
+        priceLabel.TextXAlignment = Enum.TextXAlignment.Left
+        priceLabel.Parent = card
+        
+        -- Buy button
+        local buyBtn = Instance.new("TextButton")
+        buyBtn.Name = "BuyBtn"
+        buyBtn.Size = UDim2.new(0, 60, 0, 50)
+        buyBtn.Position = UDim2.new(1, -70, 0, 15)
+        buyBtn.BackgroundColor3 = Color3.fromRGB(50, 130, 50)
+        buyBtn.Text = "Buy"
+        buyBtn.TextColor3 = Color3.new(1, 1, 1)
+        buyBtn.TextScaled = true
+        buyBtn.Font = Enum.Font.GothamBold
+        buyBtn.Parent = card
+        Instance.new("UICorner", buyBtn).CornerRadius = UDim.new(0, 8)
+        
+        buyBtn.MouseButton1Click:Connect(function()
+            Remotes.BuyIngredient:FireServer(offer.ingredientId, 1)
+            offer.stock = math.max(0, offer.stock - 1)
+            priceLabel.Text = offer.price .. " coins | Stock: " .. offer.stock
+            if offer.stock <= 0 then
+                buyBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+                buyBtn.Text = "Out"
+            end
+        end)
+        
         if offer.stock <= 0 then
             buyBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
             buyBtn.Text = "Out"
         end
-
-        -- Rarity badge for Rare+
+        
+        -- Rarity badge
         if tier == "Rare" or tier == "Mythic" or tier == "Divine" then
             local badge = Instance.new("TextLabel")
-            badge.Size = UDim2.new(0, 60, 0, 18)
-            badge.Position = UDim2.new(1, -140, 0, 3)
+            badge.Size = UDim2.new(0, 55, 0, 16)
+            badge.Position = UDim2.new(1, -130, 0, 2)
             badge.BackgroundColor3 = borderColor
             badge.Text = tier == "Divine" and "DIVINE!" or (tier == "Mythic" and "MYTHIC!" or "RARE!")
             badge.TextColor3 = tier == "Divine" and Color3.fromRGB(50, 50, 50) or Color3.new(1, 1, 1)
@@ -245,15 +284,15 @@ local function updateBrewTimerHUD()
         local duration = state.endUnix - state.startUnix
         local remaining = math.max(0, state.endUnix - now)
         local pct = math.clamp(1 - remaining / duration, 0, 1)
-
+        
         local fill = brewTimerWidget.ProgressBg.Fill
         fill.Size = UDim2.new(pct, 0, 1, 0)
         fill.BackgroundColor3 = Color3.new(0.3 + pct * 0.7, 0.8 - pct * 0.3, 0.5 - pct * 0.3)
-
+        
         local mins = math.floor(remaining / 60)
         local secs = remaining % 60
         brewTimerWidget.Countdown.Text = string.format("%d:%02d", mins, secs)
-
+        
         if state.status == "completed_unclaimed" then
             brewTimerWidget.PotionName.Text = "Claiming..."
             brewTimerWidget.Countdown.Text = "..."

@@ -107,7 +107,15 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
     local potion = Potions.Data[potionId]
     local rarity = potion and potion.tier or "Common"
     local duration = BrewTuning.getDuration(rarity)
-    if potionId == "sludge" then
+    -- Apply cauldron upgrade time reduction
+    local cauldronTier = data.Upgrades and data.Upgrades.CauldronTier or 1
+    if cauldronTier > 1 then
+        local UpgradeTuning = require(RS.Shared.Config.UpgradeTuning)
+        local tierData = UpgradeTuning.getTier(cauldronTier)
+        if tierData then
+            duration = math.floor(duration * (1 - tierData.brewTimeReduction))
+        end
+    end    if potionId == "sludge" then
         duration = BrewTuning.SludgeTimer
     end
     
@@ -194,7 +202,14 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
     
     -- Stage 1: Does mutation occur?
     local mutChance = MutationTuning.calculateChance(ingredientTiers, 0.8) -- avg freshness estimate
-    if potionId ~= "sludge" and math.random() <= mutChance then
+    -- Add cauldron upgrade mutation bonus
+    if cauldronTier and cauldronTier > 1 then
+        local UpgradeTuning = require(RS.Shared.Config.UpgradeTuning)
+        local tierData = UpgradeTuning.getTier(cauldronTier)
+        if tierData then
+            mutChance = math.min(mutChance + tierData.mutationBonus, 0.20)
+        end
+    end    if potionId ~= "sludge" and math.random() <= mutChance then
         -- Stage 2: Which mutation?
         mutation = MutationTuning.rollMutationType()
     end
@@ -245,10 +260,30 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
     
     -- Force save (critical transition)
     pds.forceSave(player)
-    pds.notifyClient(player)
+    -- Recompute score after brew
+    if _G.ScoreService then _G.ScoreService.recomputeScore(data) end    pds.notifyClient(player)
     
     print("[BrewingService] " .. player.Name .. " claimed " .. potionName .. 
-        (isNewDiscovery and " (NEW DISCOVERY!)" or "") ..
+    
+    -- Global announcement for Mythic/Divine or Rainbow/Golden
+    local shouldAnnounce = false
+    local announceMsg = ""
+    if rarity == "Mythic" or rarity == "Divine" then
+        shouldAnnounce = true
+    end
+    if mutation == "Rainbow" or mutation == "Golden" then
+        shouldAnnounce = true
+    end
+    if shouldAnnounce then
+        local mutPrefix = mutation and (mutation .. " ") or ""
+        announceMsg = player.Name .. " just brewed a " .. mutPrefix .. potionName .. "!"
+        for _, p in ipairs(game.Players:GetPlayers()) do
+            pcall(function()
+                Remotes.GlobalAnnouncement:FireClient(p, announceMsg)
+            end)
+        end
+        print("[BrewingService] GLOBAL ANNOUNCEMENT: " .. announceMsg)
+    end        (isNewDiscovery and " (NEW DISCOVERY!)" or "") ..
         (tierChanged and (" [TIER UP: " .. newTier.name .. "]") or ""))
     
     return {
