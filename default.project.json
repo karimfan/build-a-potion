@@ -1,0 +1,84 @@
+{
+  "name": "Brew a Potion",
+  "tree": {
+    "$className": "DataModel",
+
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Bootstrap": {
+        "$path": "src/server/Bootstrap.server.lua"
+      },
+      "Services": {
+        "$className": "Folder",
+        "PlayerDataService": {
+          "$path": "src/server/Services/PlayerDataService.lua"
+        },
+        "MarketService": {
+          "$path": "src/server/Services/MarketService.lua"
+        },
+        "EconomyService": {
+          "$path": "src/server/Services/EconomyService.lua"
+        },
+        "BrewingService": {
+          "$path": "src/server/Services/BrewingService.lua"
+        },
+        "ZoneService": {
+          "$path": "src/server/Services/ZoneService.lua"
+        }
+      }
+    },
+
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$className": "Folder",
+        "Types": {
+          "$path": "src/shared/Types.lua"
+        },
+        "Config": {
+          "$className": "Folder",
+          "Ingredients": {
+            "$path": "src/shared/Config/Ingredients.lua"
+          },
+          "Potions": {
+            "$path": "src/shared/Config/Potions.lua"
+          },
+          "Recipes": {
+            "$path": "src/shared/Config/Recipes.lua"
+          },
+          "MarketTuning": {
+            "$path": "src/shared/Config/MarketTuning.lua"
+          },
+          "BrewTuning": {
+            "$path": "src/shared/Config/BrewTuning.lua"
+          }
+        }
+      }
+    },
+
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "GameController": {
+          "$path": "src/client/GameController.client.lua"
+        },
+        "InteractionController": {
+          "$path": "src/client/InteractionController.client.lua"
+        },
+        "FeedbackController": {
+          "$path": "src/client/FeedbackController.client.lua"
+        },
+        "ForageNodeFeedback": {
+          "$path": "src/client/ForageNodeFeedback.client.lua"
+        },
+        "BrewVFXController": {
+          "$path": "src/client/BrewVFXController.client.lua"
+        },
+        "EnvironmentEvolution": {
+          "$path": "src/client/EnvironmentEvolution.client.lua"
+        }
+      }
+    }
+  }
+}
