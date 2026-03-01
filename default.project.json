@@ -51,6 +51,9 @@
           },
           "BrewTuning": {
             "$path": "src/shared/Config/BrewTuning.lua"
+          },
+          "MutationTuning": {
+            "$path": "src/shared/Config/MutationTuning.lua"
           }
         }
       }

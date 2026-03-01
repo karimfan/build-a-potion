@@ -98,7 +98,8 @@ Remotes.SellPotion.OnServerEvent:Connect(function(player, potionId, quantity)
     if not data then return end
     
     -- Validate potion exists
-    local potion = Potions.Data[potionId]
+    local baseId = potionId:find('__') and potionId:sub(1, potionId:find('__') - 1) or potionId
+    local potion = Potions.Data[baseId]
     if not potion then
         warn("[EconomyService] Invalid potion: " .. tostring(potionId))
         return
@@ -112,7 +113,17 @@ Remotes.SellPotion.OnServerEvent:Connect(function(player, potionId, quantity)
     end
     
     -- Execute transaction
-    local totalValue = potion.sellValue * quantity
+    -- Mutation-aware sell value
+    local baseSellValue = potion.sellValue
+    local sep = potionId:find("__")
+    if sep then
+        local mutName = potionId:sub(sep + 2)
+        local ok, MutTuning = pcall(require, RS.Shared.Config.MutationTuning)
+        if ok and MutTuning.Types[mutName] then
+            baseSellValue = math.floor(baseSellValue * MutTuning.Types[mutName].sellMultiplier)
+        end
+    end
+    local totalValue = baseSellValue * quantity
     data.Potions[potionId] = owned - quantity
     if data.Potions[potionId] <= 0 then
         data.Potions[potionId] = nil

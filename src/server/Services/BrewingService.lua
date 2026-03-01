@@ -4,6 +4,7 @@ local Recipes = require(RS.Shared.Config.Recipes)
 local Potions = require(RS.Shared.Config.Potions)
 local BrewTuning = require(RS.Shared.Config.BrewTuning)
 local Types = require(RS.Shared.Types)
+local MutationTuning = require(RS.Shared.Config.MutationTuning)
 local Remotes = RS.Remotes
 
 local BrewStatus = Types.BrewStatus
@@ -25,7 +26,7 @@ end
 -- ============================================================
 -- BrewPotion: Start a timed brew
 -- ============================================================
-Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId2)
+Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId2, ingredientId3)
     if rateLimited(player) then
         return { success = false, error = "Too fast! Wait a moment." }
     end
@@ -85,7 +86,7 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
     local avgFreshness = (freshness1 + freshness2) / 2
     
     -- Resolve recipe
-    local potionId = Recipes.lookup(ingredientId1, ingredientId2)
+    local potionId = Recipes.lookup(unpack(({ingredientId1, ingredientId2, ingredientId3 ~= '' and ingredientId3 or nil})))
     if not potionId then
         potionId = "sludge"
     end
@@ -177,7 +178,33 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
     
     -- Grant potion to inventory
     local potionId = brew.ResultPotionId
-    data.Potions[potionId] = (data.Potions[potionId] or 0) + 1
+    -- Roll mutation (2-stage)
+    local mutation = nil
+    local ingredientTiers = {}
+    -- Collect tier info from brew ingredients
+    local IngredientsConfig = require(game.ReplicatedStorage.Shared.Config.Ingredients)
+    if brew.IngredientA and brew.IngredientA ~= "" then
+        local ic = IngredientsConfig.Data[brew.IngredientA]
+        if ic then table.insert(ingredientTiers, ic.tier) end
+    end
+    if brew.IngredientB and brew.IngredientB ~= "" then
+        local ic = IngredientsConfig.Data[brew.IngredientB]
+        if ic then table.insert(ingredientTiers, ic.tier) end
+    end
+    
+    -- Stage 1: Does mutation occur?
+    local mutChance = MutationTuning.calculateChance(ingredientTiers, 0.8) -- avg freshness estimate
+    if potionId ~= "sludge" and math.random() <= mutChance then
+        -- Stage 2: Which mutation?
+        mutation = MutationTuning.rollMutationType()
+    end
+    
+    -- Grant potion (with mutation compound key if mutated)
+    local finalPotionKey = potionId
+    if mutation then
+        finalPotionKey = potionId .. "__" .. mutation
+    end
+    data.Potions[finalPotionKey] = (data.Potions[finalPotionKey] or 0) + 1
     
     local potion = Potions.Data[potionId]
     local potionName = potion and potion.name or "Unknown"
@@ -238,7 +265,10 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
             BestStreak = stats.BestStreak,
         },
         tierChanged = tierChanged,
-        newTier = tierChanged and newTier or nil,
+
+        mutation = mutation,
+        mutationMultiplier = mutation and MutationTuning.Types[mutation] and MutationTuning.Types[mutation].sellMultiplier or nil,
+        finalSellValue = mutation and MutationTuning.Types[mutation] and math.floor(sellValue * MutationTuning.Types[mutation].sellMultiplier) or sellValue,        newTier = tierChanged and newTier or nil,
     }
 end
 

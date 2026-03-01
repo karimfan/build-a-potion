@@ -29,13 +29,25 @@ local function closeAllGuis()
 end
 
 -- ========== CAULDRON ==========
-local selectedSlots = {nil, nil}
+local selectedSlots = {nil, nil, nil}
 local isBrewing = false
 local brewEndTime = 0
 local brewTimerConnection = nil
 
 local function updateSlotDisplay()
-    for i = 1, 2 do
+    -- Check if 3rd slot is unlocked
+    local data = getMyData()
+    local slot3Unlocked = data and data.BrewStats and data.BrewStats.TotalBrewed >= 10
+    local slot3 = cauldronGui.MainFrame.SlotsFrame:FindFirstChild("Slot3")
+    if slot3 then
+        slot3.Visible = true
+        if not slot3Unlocked then
+            slot3.Label.Text = "Locked (10 brews)"
+            slot3.Label.TextColor3 = Color3.fromRGB(100, 100, 110)
+            slot3.BackgroundColor3 = Color3.fromRGB(35, 30, 40)
+        end
+    end
+    for i = 1, (slot3Unlocked and 3 or 2) do
         local slot = cauldronGui.MainFrame.SlotsFrame["Slot" .. i]
         local label = slot.Label
         if selectedSlots[i] then
@@ -90,9 +102,16 @@ local function refreshCauldronIngredients()
                         selectedSlots[1] = ingredientId
                     elseif not selectedSlots[2] then
                         selectedSlots[2] = ingredientId
+                    elseif not selectedSlots[3] then
+                        -- Only fill 3rd slot if unlocked
+                        local d = getMyData()
+                        if d and d.BrewStats and d.BrewStats.TotalBrewed >= 10 then
+                            selectedSlots[3] = ingredientId
+                        end
                     else
                         selectedSlots[1] = selectedSlots[2]
-                        selectedSlots[2] = ingredientId
+                        selectedSlots[2] = selectedSlots[3] or ingredientId
+                        selectedSlots[3] = ingredientId
                     end
                     updateSlotDisplay()
                 end)
@@ -192,13 +211,19 @@ local function startBrewTimer(duration, endTime)
                         resultLabel.Text = "NEW DISCOVERY!\n" .. claimResult.potionName .. "\nWorth " .. claimResult.sellValue .. " coins"
                         resultLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
                     else
+                        local mutText = ""
+                    if claimResult.mutation then
+                        mutText = claimResult.mutation .. " "
+                        resultLabel.Text = claimResult.mutation .. " " .. claimResult.potionName .. "!\nWorth " .. (claimResult.finalSellValue or claimResult.sellValue) .. " coins (" .. (claimResult.mutationMultiplier or 1) .. "x!)"
+                    else
                         resultLabel.Text = "Brewed: " .. claimResult.potionName .. "\nWorth " .. claimResult.sellValue .. " coins"
+                    end
                         resultLabel.TextColor3 = claimResult.potionId == "sludge" and Color3.fromRGB(150, 150, 100) or Color3.fromRGB(100, 255, 100)
                     end
                     if claimResult.tierChanged and claimResult.newTier then
                         task.delay(1, function() resultLabel.Text = resultLabel.Text .. "\n\nCAULDRON EVOLVED: " .. claimResult.newTier.name .. "!" end)
                     end
-                    selectedSlots = {nil, nil}
+                    selectedSlots = {nil, nil, nil}
                     updateSlotDisplay()
                     refreshCauldronIngredients()
                     task.delay(5, function() if not isBrewing then setBrewingUIState("idle") end end)
@@ -238,7 +263,7 @@ local function checkActiveBrewState()
     return false
 end
 
-for i = 1, 2 do
+for i = 1, 3 do
     local slot = cauldronGui.MainFrame.SlotsFrame["Slot" .. i]
     slot.InputBegan:Connect(function(input)
         if isBrewing then return end
@@ -256,7 +281,7 @@ cauldronGui.MainFrame.BrewBtn.MouseButton1Click:Connect(function()
     resultLabel.Text = "Starting brew..."
     resultLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
     resultLabel.Visible = true
-    local result = Remotes.BrewPotion:InvokeServer(selectedSlots[1], selectedSlots[2])
+    local result = Remotes.BrewPotion:InvokeServer(selectedSlots[1], selectedSlots[2], selectedSlots[3] or "")
     if result and result.success then
         local badge = cauldronGui.MainFrame:FindFirstChild("RarityBadge")
         if badge then
@@ -282,7 +307,7 @@ cauldronGui:GetPropertyChangedSignal("Enabled"):Connect(function()
         if not checkActiveBrewState() then
             setBrewingUIState("idle")
             refreshCauldronIngredients()
-            selectedSlots = {nil, nil}
+            selectedSlots = {nil, nil, nil}
             updateSlotDisplay()
         end
     end
@@ -468,7 +493,7 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, triggerPlayer)
         marketGui.Enabled = true
     elseif parent.Name == "Cauldron" then
         closeAllGuis()
-        selectedSlots = {nil, nil}
+        selectedSlots = {nil, nil, nil}
         updateSlotDisplay()
         refreshCauldronIngredients()
         cauldronGui.Enabled = true
