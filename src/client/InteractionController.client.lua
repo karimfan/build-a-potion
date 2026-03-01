@@ -169,10 +169,7 @@ local function startBrewTimer(duration, endTime)
     isBrewing = true
     brewEndTime = endTime
     setBrewingUIState("brewing")
-    -- Close the GUI so player can watch the cauldron VFX in the world
-    task.delay(0.5, function()
-        cauldronGui.Enabled = false
-    end)
+   -- Non-modal: player can close GUI and walk around
     local statusMessages = {
         "Your cauldron is bubbling...",
         "Ingredients are melding together...",

@@ -24,6 +24,15 @@
         },
         "ZoneService": {
           "$path": "src/server/Services/ZoneService.lua"
+        },
+        "ScoreService": {
+          "$path": "src/server/Services/ScoreService.lua"
+        },
+        "LeaderboardService": {
+          "$path": "src/server/Services/LeaderboardService.lua"
+        },
+        "DailyDemandService": {
+          "$path": "src/server/Services/DailyDemandService.lua"
         }
       }
     },
@@ -51,6 +60,9 @@
           },
           "BrewTuning": {
             "$path": "src/shared/Config/BrewTuning.lua"
+          },
+          "UpgradeTuning": {
+            "$path": "src/shared/Config/UpgradeTuning.lua"
           },
           "MutationTuning": {
             "$path": "src/shared/Config/MutationTuning.lua"

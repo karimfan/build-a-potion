@@ -43,6 +43,23 @@ local function getDefaultProfile()
         LastLoginUnix = os.time(),
         BrewStats = getDefaultBrewStats(),
         ActiveBrew = getDefaultActiveBrew(),
+        Score = {
+            TimePlayedMinutes = 0,
+            TotalCoinsFromSelling = 0,
+            BrewScoreCache = 0,
+            MutationScoreCache = 0,
+            CompositeScore = 0,
+            LastLeaderboardWriteUnix = 0,
+        },
+        Upgrades = {
+            CauldronTier = 1,
+            BrewStations = 1,
+            StorageSlots = 20,
+        },
+        DailyDemandState = {
+            LastSoldDateKey = "",
+            SoldPotionIds = {},
+        },
     }
 end
 
@@ -90,12 +107,34 @@ local function migrateProfile(data)
         print("[PlayerDataService] Migrated V2 → V3 (stack inventory)")
     end
 
+    -- V3 → V4: Add Score, Upgrades, DailyDemandState
+    if data.Version < 4 then
+        if not data.Score then
+            data.Score = {
+                TimePlayedMinutes = 0, TotalCoinsFromSelling = 0,
+                BrewScoreCache = 0, MutationScoreCache = 0,
+                CompositeScore = 0, LastLeaderboardWriteUnix = 0,
+            }
+        end
+        if not data.Upgrades then
+            data.Upgrades = { CauldronTier = 1, BrewStations = 1, StorageSlots = 20 }
+        end
+        if not data.DailyDemandState then
+            data.DailyDemandState = { LastSoldDateKey = "", SoldPotionIds = {} }
+        end
+        data.Version = 4
+        print("[PlayerDataService] Migrated V3 → V4 (score + upgrades)")
+    end
+
     -- Defensive: ensure all V3 fields exist
     if not data.BrewStats then data.BrewStats = getDefaultBrewStats() end
     if not data.ActiveBrew then data.ActiveBrew = getDefaultActiveBrew() end
     if not data.BrewStats.PotionCounts then data.BrewStats.PotionCounts = {} end
     if not data.BrewStats.CurrentStreak then data.BrewStats.CurrentStreak = 0 end
     if not data.BrewStats.BestStreak then data.BrewStats.BestStreak = 0 end
+    if not data.Score then data.Score = { TimePlayedMinutes = 0, TotalCoinsFromSelling = 0, BrewScoreCache = 0, MutationScoreCache = 0, CompositeScore = 0, LastLeaderboardWriteUnix = 0 } end
+    if not data.Upgrades then data.Upgrades = { CauldronTier = 1, BrewStations = 1, StorageSlots = 20 } end
+    if not data.DailyDemandState then data.DailyDemandState = { LastSoldDateKey = "", SoldPotionIds = {} } end
 
     return data
 end

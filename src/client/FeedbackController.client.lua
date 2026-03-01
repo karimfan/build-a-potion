@@ -209,4 +209,66 @@ task.spawn(function()
     end
 end)
 
-print("[FeedbackController] Initialized")
+print(
+-- ========== GLOBAL ANNOUNCEMENTS ==========
+local announcementQueue = {}
+local isShowingAnnouncement = false
+
+local function showNextAnnouncement()
+    if isShowingAnnouncement or #announcementQueue == 0 then return end
+    isShowingAnnouncement = true
+    local msg = table.remove(announcementQueue, 1)
+    
+    -- Create announcement banner at top of screen
+    local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    local banner = Instance.new("ScreenGui")
+    banner.Name = "AnnouncementBanner"
+    banner.DisplayOrder = 100
+    banner.Parent = playerGui
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.6, 0, 0, 40)
+    frame.Position = UDim2.new(0.2, 0, 0, -50)
+    frame.BackgroundColor3 = Color3.fromRGB(50, 30, 80)
+    frame.BackgroundTransparency = 0.1
+    frame.Parent = banner
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(255, 215, 0)
+    stroke.Thickness = 2
+    stroke.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -20, 1, 0)
+    label.Position = UDim2.new(0, 10, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = msg
+    label.TextColor3 = Color3.fromRGB(255, 215, 100)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Parent = frame
+    
+    -- Animate slide in
+    local TweenService = game:GetService("TweenService")
+    TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Position = UDim2.new(0.2, 0, 0, 10) }):Play()
+    
+    -- Wait and fade out
+    task.delay(4, function()
+        TweenService:Create(frame, TweenInfo.new(0.5), { Position = UDim2.new(0.2, 0, 0, -50) }):Play()
+        task.delay(0.6, function()
+            banner:Destroy()
+            isShowingAnnouncement = false
+            showNextAnnouncement()
+        end)
+    end)
+end
+
+Remotes.GlobalAnnouncement.OnClientEvent:Connect(function(msg)
+    table.insert(announcementQueue, msg)
+    if #announcementQueue > 3 then
+        table.remove(announcementQueue, 1) -- drop oldest if queue full
+    end
+    showNextAnnouncement()
+end)
+
+"[FeedbackController] Initialized")

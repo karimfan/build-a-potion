@@ -280,4 +280,66 @@ marketGui.MainFrame.TitleBar.CloseBtn.MouseButton1Click:Connect(function()
     marketGui.Enabled = false
 end)
 
+
+-- ========== BREW TIMER HUD WIDGET ==========
+local brewTimerWidget = hudGui:WaitForChild("BrewTimerWidget")
+local brewTimerConnection = nil
+
+local function updateBrewTimerHUD()
+    local state = Remotes.GetActiveBrewState:InvokeServer()
+    if state and (state.status == "brewing" or state.status == "completed_unclaimed") then
+        brewTimerWidget.Visible = true
+        local now = os.time()
+        local duration = state.endUnix - state.startUnix
+        local remaining = math.max(0, state.endUnix - now)
+        local pct = math.clamp(1 - remaining / duration, 0, 1)
+        
+        local fill = brewTimerWidget.ProgressBg.Fill
+        fill.Size = UDim2.new(pct, 0, 1, 0)
+        fill.BackgroundColor3 = Color3.new(0.3 + pct * 0.7, 0.8 - pct * 0.3, 0.5 - pct * 0.3)
+        
+        local mins = math.floor(remaining / 60)
+        local secs = remaining % 60
+        brewTimerWidget.Countdown.Text = string.format("%d:%02d", mins, secs)
+        
+        if state.status == "completed_unclaimed" then
+            brewTimerWidget.PotionName.Text = "Brew Ready! Tap to claim"
+            brewTimerWidget.Countdown.Text = "DONE!"
+            fill.Size = UDim2.new(1, 0, 1, 0)
+            fill.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+        end
+    else
+        brewTimerWidget.Visible = false
+    end
+end
+
+-- Click brew timer widget to open cauldron GUI
+brewTimerWidget.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        -- Trigger cauldron interaction
+        local cauldronGui = playerGui:FindFirstChild("CauldronGui")
+        if cauldronGui then
+            cauldronGui.Enabled = true
+        end
+    end
+end)
+
+-- Poll brew state every 2 seconds for HUD
+task.spawn(function()
+    while true do
+        task.wait(2)
+        pcall(updateBrewTimerHUD)
+    end
+end)
+
+-- ========== SCORE HUD ==========
+local scoreFrame = hudGui:FindFirstChild("ScoreFrame")
+
+Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(data)
+    if data and scoreFrame then
+        local score = data.Score and data.Score.CompositeScore or 0
+        scoreFrame.ScoreLabel.Text = tostring(score)
+    end
+end)
+
 print("[GameController] Market wired")
