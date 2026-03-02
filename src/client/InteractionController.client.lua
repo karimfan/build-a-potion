@@ -39,12 +39,10 @@ local function updateSlotDisplay()
     local data = getMyData()
     local slot3Unlocked = data and data.BrewStats and data.BrewStats.TotalBrewed >= 10
     local slot3 = cauldronGui.MainFrame.SlotsFrame:FindFirstChild("Slot3")
-    if slot3 then
-        slot3.Visible = true
-        if not slot3Unlocked then
-            slot3.Label.Text = "Locked (10 brews)"
-            slot3.Label.TextColor3 = Color3.fromRGB(100, 100, 110)
-            slot3.BackgroundColor3 = Color3.fromRGB(35, 30, 40)
+        if slot3 then
+        slot3.Visible = slot3Unlocked  -- HIDE when locked
+        if slot3Unlocked then
+            -- Show slot 3 for advanced brewing
         end
     end
     for i = 1, (slot3Unlocked and 3 or 2) do
@@ -87,7 +85,7 @@ local function refreshCauldronIngredients()
                 order = order + 1
                 local btn = Instance.new("TextButton")
                 btn.Name = "Ing_" .. ingredientId
-                btn.Size = UDim2.new(0, 125, 0, 50)
+                btn.Size = UDim2.new(1, -10, 0, 40)
                 btn.BackgroundColor3 = Color3.fromRGB(55, 50, 60)
                 btn.Text = ing.name .. " x" .. qty
                 btn.TextColor3 = Color3.new(1, 1, 1)
@@ -290,7 +288,28 @@ cauldronGui.MainFrame.BrewBtn.MouseButton1Click:Connect(function()
             local widget = hg3:FindFirstChild("BrewTimerWidget")
             if widget then
                 widget.PotionName.Text = "Brewing " .. (result.potionName or "potion") .. "..."
+        -- Local countdown timer on HUD widget
+        task.spawn(function()
+            local bEndT = result.endUnix
+            local bDurT = result.brewDuration
+            while isBrewing do
+                local rem = math.max(0, bEndT - os.time())
+                local pct = math.clamp(1 - rem / bDurT, 0, 1)
+                local mins = math.floor(rem / 60)
+                local secs = rem % 60
+                widget.Countdown.Text = string.format("Time to brew: %d:%02d", mins, secs)
+                local wFill = widget.ProgressBg and widget.ProgressBg:FindFirstChild("Fill")
+                if wFill then
+                    wFill.Size = UDim2.new(pct, 0, 1, 0)
+                    wFill.BackgroundColor3 = Color3.new(0.3 + pct*0.7, 0.8 - pct*0.3, 0.5 - pct*0.3)
+                end
+                if rem <= 0 then
+                    widget.Countdown.Text = "Complete!"
+                    break
+                end
+                task.wait(1)
             end
+        end)            end
         end
         startBrewTimer(result.brewDuration, result.endUnix)
 
@@ -465,13 +484,20 @@ local function refreshRecipeBook()
             nameLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
             local ing1Name = ing1 and ing1.name or parts[1]
             local ing2Name = ing2 and ing2.name or parts[2]
-            detailLabel.Text = ing1Name .. " + " .. ing2Name .. " → " .. (potion and tostring(potion.sellValue) or "?") .. " coins"
+            detailLabel.Text = ing1Name .. " + " .. ing2Name .. " -> " .. (potion and tostring(potion.sellValue) or "?") .. " coins"
             detailLabel.TextColor3 = Color3.fromRGB(180, 170, 200)
         else
             nameLabel.Text = "???"
             nameLabel.TextColor3 = Color3.fromRGB(100, 100, 110)
-            detailLabel.Text = "Undiscovered recipe"
-            detailLabel.TextColor3 = Color3.fromRGB(80, 80, 90)
+            detailLabel.Text = table.concat((function()
+                local hh = {}
+                for _, pp in ipairs(parts) do
+                    local ii = Ingredients.Data[pp]
+                    table.insert(hh, ii and ("[" .. ii.element .. "]") or "[?]")
+                end
+                return hh
+            end)(), " + ") .. " = ???"
+            detailLabel.TextColor3 = Color3.fromRGB(120, 110, 140)
         end
     end
 

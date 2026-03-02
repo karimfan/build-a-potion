@@ -209,7 +209,7 @@ end
 local function updateBrewVFX(pct, mult)
     mult = mult or 1
     local ambientBubbles = cauldron and cauldron:FindFirstChild("CauldronBubbles")
-    if ambientBubbles then ambientBubbles.Rate = 8 + pct * 30 * mult end
+    if ambientBubbles then ambientBubbles.Rate = 12 + pct * 40 * mult end
 
     if cauldronGlow then
         cauldronGlow.Range = 20 + pct * 25 * mult
@@ -229,28 +229,28 @@ local function updateBrewVFX(pct, mult)
     end
 
     -- Stage 1: Steam always on during brew, intensifies
-    if steamE then steamE.Rate = 5 + pct * 15 * mult end
+    if steamE then steamE.Rate = 10 + pct * 30 * mult end
     -- Magic swirl starts at 10%
-    if magicSwirl then magicSwirl.Rate = pct >= 0.1 and (3 + pct * 8 * mult) or 0 end
+    if magicSwirl then magicSwirl.Rate = pct >= 0.1 and (6 + pct * 16 * mult) or 0 end
     -- Stage 2: Sparks at 25%+
-    if sparkE then sparkE.Rate = pct >= 0.25 and (8 + (pct - 0.25) * 25 * mult) or 0 end
+    if sparkE then sparkE.Rate = pct >= 0.25 and (15 + (pct - 0.25) * 40 * mult) or 0 end
     -- Stage 3: Fire at 50%+
-    if fireE then fireE.Rate = pct >= 0.5 and (5 + (pct - 0.5) * 20 * mult) or 0 end
+    if fireE then fireE.Rate = pct >= 0.5 and (10 + (pct - 0.5) * 35 * mult) or 0 end
 end
 
 -- Completion burst
 local function playCompletionBurst(mult)
     mult = mult or 1
     -- Big fire column
-    if bigFireE then bigFireE.Rate = 60 * mult end
+    if bigFireE then bigFireE.Rate = 100 * mult end
     -- Fireworks
-    if fireworkE then fireworkE.Rate = 80 * mult end
+    if fireworkE then fireworkE.Rate = 120 * mult end
     -- Max sparks
-    if sparkE then sparkE.Rate = 50 * mult end
+    if sparkE then sparkE.Rate = 80 * mult end
     -- Flash glow
     if cauldronGlow then
-        cauldronGlow.Range = 80
-        cauldronGlow.Brightness = 10
+        cauldronGlow.Range = 100
+        cauldronGlow.Brightness = 15
         cauldronGlow.Color = Color3.new(1, 1, 0.8)
     end
 
