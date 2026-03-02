@@ -36,8 +36,9 @@ Remotes.ForageNode.OnServerEvent:Connect(function(player, nodeId)
     forageCooldowns[userId][nodeId] = now + Types.FORAGE_COOLDOWN_SECONDS
     
     -- Award random common ingredient
-    local nodeMap = {ForageNode_1="mushroom",ForageNode_2="river_water",ForageNode_3="fern_leaf",ForageNode_4="cobweb_strand",ForageNode_5="acorn_cap",ForageNode_6="clay_mud"}
-    local ingredientId = nodeMap[nodeId] or "mushroom"
+    local NP={ForageNode_1={"mushroom","willow_bark","snail_slime"},ForageNode_2={"river_water","rainwater","snail_slime"},ForageNode_3={"fern_leaf","mint_sprig","dandelion_puff"},ForageNode_4={"cobweb_strand","charcoal_chunk","pebble_dust"},ForageNode_5={"acorn_cap","pebble_dust","willow_bark"},ForageNode_6={"clay_mud","honey_drop","firefly_glow"}}
+    local pool = NP[nodeId] or {"mushroom"}
+    local ingredientId = pool[math.random(1, #pool)]
     -- V3: Add as fresh stack
     local pdsModule = _G.PlayerDataService
     if pdsModule and pdsModule.addIngredientStack then
