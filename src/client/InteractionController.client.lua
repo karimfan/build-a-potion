@@ -465,7 +465,18 @@ local function refreshRecipeBook()
     local totalCount = 0
     local order = 0
 
-    for recipeKey, potionId in pairs(allRecipes) do
+    -- Sort recipes by tier for better display
+    local sortedRecipes = {}
+    for key, pid in pairs(allRecipes) do
+        local p = Potions.Data[pid]
+        local tierOrder = {Common=1, Uncommon=2, Rare=3, Mythic=4, Divine=5}
+        table.insert(sortedRecipes, {key=key, potionId=pid, tierSort=p and tierOrder[p.tier] or 1})
+    end
+    table.sort(sortedRecipes, function(a,b) return a.tierSort < b.tierSort end)
+
+    for _, entry in ipairs(sortedRecipes) do
+        local recipeKey = entry.key
+        local potionId = entry.potionId
         totalCount = totalCount + 1
         order = order + 1
         local discovered = data.DiscoveredRecipes[recipeKey] == true
@@ -515,7 +526,11 @@ local function refreshRecipeBook()
                 local hh = {}
                 for _, pp in ipairs(parts) do
                     local ii = Ingredients.Data[pp]
-                    table.insert(hh, ii and ("[" .. ii.element .. "]") or "[?]")
+                    if ii then
+                        table.insert(hh, "[" .. ii.tier .. " " .. ii.element .. "]")
+                    else
+                        table.insert(hh, "[?]")
+                    end
                 end
                 return hh
             end)(), " + ") .. " = ???"
