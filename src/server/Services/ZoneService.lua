@@ -36,7 +36,20 @@ Remotes.ForageNode.OnServerEvent:Connect(function(player, nodeId)
     forageCooldowns[userId][nodeId] = now + Types.FORAGE_COOLDOWN_SECONDS
 
     -- Award random common ingredient
-    local NP={ForageNode_1={"mushroom","willow_bark","snail_slime"},ForageNode_2={"river_water","rainwater","snail_slime"},ForageNode_3={"fern_leaf","mint_sprig","dandelion_puff"},ForageNode_4={"cobweb_strand","charcoal_chunk","pebble_dust"},ForageNode_5={"acorn_cap","pebble_dust","willow_bark"},ForageNode_6={"clay_mud","honey_drop","firefly_glow"}}
+    local NP={
+        ForageNode_1={"mushroom","willow_bark","snail_slime"},
+        ForageNode_2={"river_water","rainwater","snail_slime"},
+        ForageNode_3={"fern_leaf","mint_sprig","dandelion_puff"},
+        ForageNode_4={"cobweb_strand","charcoal_chunk","pebble_dust"},
+        ForageNode_5={"acorn_cap","pebble_dust","willow_bark"},
+        ForageNode_6={"clay_mud","honey_drop","firefly_glow"},
+        ForageNode_7={"mushroom","willow_bark","glowshroom_cap"},
+        ForageNode_8={"river_water","rainwater","dewdrop_pearl"},
+        ForageNode_9={"fern_leaf","mint_sprig","dandelion_puff"},
+        ForageNode_10={"cobweb_strand","charcoal_chunk","nightshade_berry"},
+        ForageNode_11={"acorn_cap","willow_bark","honey_drop"},
+        ForageNode_12={"clay_mud","firefly_glow","mint_sprig"},
+    },ForageNode_2={"river_water","rainwater","snail_slime"},ForageNode_3={"fern_leaf","mint_sprig","dandelion_puff"},ForageNode_4={"cobweb_strand","charcoal_chunk","pebble_dust"},ForageNode_5={"acorn_cap","pebble_dust","willow_bark"},ForageNode_6={"clay_mud","honey_drop","firefly_glow"}}
     local pool = NP[nodeId] or {"mushroom"}
     local ingredientId = pool[math.random(1, #pool)]
     -- V3: Add as fresh stack

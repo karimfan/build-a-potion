@@ -115,8 +115,7 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
         if tierData then
             duration = math.floor(duration * (1 - tierData.brewTimeReduction))
         end
-    end
-    if potionId == "sludge" then
+    end    if potionId == "sludge" then
         duration = BrewTuning.SludgeTimer
     end
 
@@ -210,8 +209,7 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
         if tierData then
             mutChance = math.min(mutChance + tierData.mutationBonus, 0.20)
         end
-    end
-    if potionId ~= "sludge" and math.random() <= mutChance then
+    end    if potionId ~= "sludge" and math.random() <= mutChance then
         -- Stage 2: Which mutation?
         mutation = MutationTuning.rollMutationType()
     end
@@ -223,6 +221,16 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
     end
     data.Potions[finalPotionKey] = (data.Potions[finalPotionKey] or 0) + 1
 
+    -- Add to potion display collection
+    if not data.PotionDisplays then data.PotionDisplays = {} end
+    if #data.PotionDisplays >= 30 then
+        table.remove(data.PotionDisplays, 1) -- remove oldest
+    end
+    table.insert(data.PotionDisplays, {
+        potionId = potionId,
+        mutation = mutation,
+        brewedUnix = os.time(),
+    })
     local potion = Potions.Data[potionId]
     local potionName = potion and potion.name or "Unknown"
     local sellValue = potion and potion.sellValue or 0
@@ -302,10 +310,10 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
             BestStreak = stats.BestStreak,
         },
         tierChanged = tierChanged,
+
         mutation = mutation,
         mutationMultiplier = mutation and MutationTuning.Types[mutation] and MutationTuning.Types[mutation].sellMultiplier or nil,
-        finalSellValue = mutation and MutationTuning.Types[mutation] and math.floor(sellValue * MutationTuning.Types[mutation].sellMultiplier) or sellValue,
-        newTier = tierChanged and newTier or nil,
+        finalSellValue = mutation and MutationTuning.Types[mutation] and math.floor(sellValue * MutationTuning.Types[mutation].sellMultiplier) or sellValue,        newTier = tierChanged and newTier or nil,
     }
 end
 

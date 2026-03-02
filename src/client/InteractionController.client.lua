@@ -39,10 +39,12 @@ local function updateSlotDisplay()
     local data = getMyData()
     local slot3Unlocked = data and data.BrewStats and data.BrewStats.TotalBrewed >= 10
     local slot3 = cauldronGui.MainFrame.SlotsFrame:FindFirstChild("Slot3")
-        if slot3 then
-        slot3.Visible = slot3Unlocked  -- HIDE when locked
-        if slot3Unlocked then
-            -- Show slot 3 for advanced brewing
+    if slot3 then
+        slot3.Visible = true
+        if not slot3Unlocked then
+            slot3.Label.Text = "Locked (10 brews)"
+            slot3.Label.TextColor3 = Color3.fromRGB(100, 100, 110)
+            slot3.BackgroundColor3 = Color3.fromRGB(35, 30, 40)
         end
     end
     for i = 1, (slot3Unlocked and 3 or 2) do
@@ -85,7 +87,7 @@ local function refreshCauldronIngredients()
                 order = order + 1
                 local btn = Instance.new("TextButton")
                 btn.Name = "Ing_" .. ingredientId
-                btn.Size = UDim2.new(1, -10, 0, 40)
+                btn.Size = UDim2.new(0, 125, 0, 50)
                 btn.BackgroundColor3 = Color3.fromRGB(55, 50, 60)
                 btn.Text = ing.name .. " x" .. qty
                 btn.TextColor3 = Color3.new(1, 1, 1)
@@ -159,10 +161,31 @@ local function setBrewingUIState(state)
 end
 
 local function startBrewTimer(duration, endTime)
+    local mf = cauldronGui.MainFrame
+    local progressBg = mf:FindFirstChild("ProgressBarBg")
+    local timerLabel = mf:FindFirstChild("TimerLabel")
+    local brewStatus = mf:FindFirstChild("BrewStatusLabel")
+    local fill = progressBg and progressBg:FindFirstChild("Fill")
     isBrewing = true
     brewEndTime = endTime
-    -- GUI already closed by brew button handler
-    -- HUD widget already activated by brew button handler
+    -- Close the cauldron GUI - brew timer shows on HUD widget instead
+    cauldronGui.Enabled = false
+    -- Activate HUD brew timer widget
+    local hudGui = player:WaitForChild("PlayerGui"):FindFirstChild("HudGui")
+    if hudGui then
+        local widget = hudGui:FindFirstChild("BrewTimerWidget")
+        if widget then
+            widget.Visible = true
+            widget.PotionName.Text = "Brewing..."
+        end
+    end
+    local statusMessages = {
+        "Your cauldron is bubbling...",
+        "Ingredients are melding together...",
+        "Magical energy is building...",
+        "The brew is taking shape...",
+        "Almost there... hold steady...",
+    }
     if brewTimerConnection then brewTimerConnection:Disconnect() end
     brewTimerConnection = game:GetService("RunService").Heartbeat:Connect(function()
         local now = os.time()
@@ -260,98 +283,28 @@ end
 cauldronGui.MainFrame.BrewBtn.MouseButton1Click:Connect(function()
     if isBrewing then return end
     if not selectedSlots[1] or not selectedSlots[2] then return end
-
-    local ing1, ing2, ing3 = selectedSlots[1], selectedSlots[2], selectedSlots[3]
-
-    -- CLOSE GUI IMMEDIATELY
-    cauldronGui.Enabled = false
-    isBrewing = true
-
-    -- Get HUD widget reference
-    local hGui = player:WaitForChild("PlayerGui"):FindFirstChild("HudGui")
-    local timerWidget = hGui and hGui:FindFirstChild("BrewTimerWidget")
-    if timerWidget then
-        timerWidget.Visible = true
-        timerWidget.PotionName.Text = "Starting brew..."
-        timerWidget.Countdown.Text = "..."
-    end
-
-    -- Call server
-    local result = Remotes.BrewPotion:InvokeServer(ing1, ing2, ing3 or "")
-
+    local resultLabel = cauldronGui.MainFrame.ResultLabel
+    resultLabel.Text = "Starting brew..."
+    resultLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    resultLabel.Visible = true
+    local result = Remotes.BrewPotion:InvokeServer(selectedSlots[1], selectedSlots[2], selectedSlots[3] or "")
     if result and result.success then
-        -- Update widget with potion name
-        if timerWidget then
-            timerWidget.PotionName.Text = "Brewing " .. (result.potionName or "potion") .. "..."
+        local badge = cauldronGui.MainFrame:FindFirstChild("RarityBadge")
+        if badge then
+            badge.Text = result.rarity
+            local rc = {Common=Color3.fromRGB(80,140,80), Uncommon=Color3.fromRGB(60,120,180), Rare=Color3.fromRGB(200,170,50), Mythic=Color3.fromRGB(180,60,200)}
+            badge.BackgroundColor3 = rc[result.rarity] or Color3.fromRGB(100, 80, 150)
         end
-
+        startBrewTimer(result.brewDuration, result.endUnix)
+        
         -- Fire VFX event
-        local brewEvent = game.ReplicatedStorage:FindFirstChild("BrewStateEvent")
+        local brewEvent = game.ReplicatedStorage:WaitForChild("BrewStateEvent", 5)
         if brewEvent then
             brewEvent:Fire("start", { duration = result.brewDuration, endUnix = result.endUnix, rarity = result.rarity })
-        end
-
-        -- Run local countdown on HUD widget
-        local bEndTime = result.endUnix
-        local bDuration = result.brewDuration
-
-        task.spawn(function()
-            while isBrewing do
-                local remaining = math.max(0, bEndTime - os.time())
-                local pct = math.clamp(1 - remaining / bDuration, 0, 1)
-                local mins = math.floor(remaining / 60)
-                local secs = remaining % 60
-
-                if timerWidget then
-                    timerWidget.Countdown.Text = string.format("Time to brew: %d:%02d", mins, secs)
-                    local wFill = timerWidget:FindFirstChild("ProgressBg") and timerWidget.ProgressBg:FindFirstChild("Fill")
-                    if wFill then
-                        wFill.Size = UDim2.new(pct, 0, 1, 0)
-                        wFill.BackgroundColor3 = Color3.new(0.3 + pct*0.7, 0.8 - pct*0.3, 0.5 - pct*0.3)
-                    end
-                end
-
-                if remaining <= 0 then
-                    -- Auto-claim
-                    local claimResult = Remotes.ClaimBrewResult:InvokeServer()
-                    isBrewing = false
-
-                    if claimResult and claimResult.success then
-                        if timerWidget then
-                            local mutPrefix = claimResult.mutation and (claimResult.mutation .. " ") or ""
-                            timerWidget.PotionName.Text = mutPrefix .. (claimResult.potionName or "Potion") .. "!"
-                            timerWidget.Countdown.Text = "+" .. (claimResult.finalSellValue or claimResult.sellValue or 0) .. " coins"
-                            timerWidget.ProgressBg.Fill.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
-                            timerWidget.ProgressBg.Fill.Size = UDim2.new(1, 0, 1, 0)
-                        end
-
-                        selectedSlots = {nil, nil, nil}
-
-                        task.wait(4)
-                        if timerWidget then timerWidget.Visible = false end
-                    else
-                        if timerWidget then
-                            timerWidget.PotionName.Text = "Brew failed"
-                            task.wait(3)
-                            timerWidget.Visible = false
-                        end
-                    end
-                    break
-                end
-
-                task.wait(1)
-            end
-        end)
-    else
-        -- Brew failed
-        isBrewing = false
-        if timerWidget then
-            timerWidget.PotionName.Text = result and result.error or "Brew failed!"
-            timerWidget.Countdown.Text = ""
-            task.delay(3, function()
-                timerWidget.Visible = false
-            end)
-        end
+        end    else
+        resultLabel.Text = result and result.error or "Brew failed!"
+        resultLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        task.delay(3, function() resultLabel.Visible = false end)
     end
 end)
 
@@ -376,14 +329,14 @@ end)
 local function refreshSellUI()
     local data = getMyData()
     if not data then return end
-
+    
     local list = sellGui.MainFrame.PotionList
     for _, child in ipairs(list:GetChildren()) do
         if child:IsA("Frame") or (child:IsA("TextLabel") and child.Name ~= "EmptyLabel") then
             child:Destroy()
         end
     end
-
+    
     local hasItems = false
     local order = 0
     for potionId, qty in pairs(data.Potions) do
@@ -392,14 +345,14 @@ local function refreshSellUI()
             order = order + 1
             local potion = Potions.Data[potionId]
             if not potion then continue end
-
+            
             local item = Instance.new("Frame")
             item.Size = UDim2.new(1, 0, 0, 55)
             item.BackgroundColor3 = Color3.fromRGB(50, 45, 35)
             item.LayoutOrder = order
             item.Parent = list
             Instance.new("UICorner", item).CornerRadius = UDim.new(0, 8)
-
+            
             local nameLabel = Instance.new("TextLabel")
             nameLabel.Size = UDim2.new(0.4, 0, 0, 25)
             nameLabel.Position = UDim2.new(0, 10, 0, 5)
@@ -410,7 +363,7 @@ local function refreshSellUI()
             nameLabel.Font = Enum.Font.GothamBold
             nameLabel.TextXAlignment = Enum.TextXAlignment.Left
             nameLabel.Parent = item
-
+            
             local valueLabel = Instance.new("TextLabel")
             valueLabel.Size = UDim2.new(0, 100, 0, 25)
             valueLabel.Position = UDim2.new(0.4, 10, 0, 5)
@@ -420,7 +373,7 @@ local function refreshSellUI()
             valueLabel.TextScaled = true
             valueLabel.Font = Enum.Font.Gotham
             valueLabel.Parent = item
-
+            
             local sellBtn = Instance.new("TextButton")
             sellBtn.Size = UDim2.new(0, 70, 0, 35)
             sellBtn.Position = UDim2.new(1, -80, 0, 10)
@@ -431,7 +384,7 @@ local function refreshSellUI()
             sellBtn.Font = Enum.Font.GothamBold
             sellBtn.Parent = item
             Instance.new("UICorner", sellBtn).CornerRadius = UDim.new(0, 8)
-
+            
             sellBtn.MouseButton1Click:Connect(function()
                 Remotes.SellPotion:FireServer(potionId, 1)
                 task.wait(0.3)
@@ -439,7 +392,7 @@ local function refreshSellUI()
             end)
         end
     end
-
+    
     local emptyLabel = list:FindFirstChild("EmptyLabel")
     if emptyLabel then
         emptyLabel.Visible = not hasItems
@@ -454,46 +407,35 @@ end)
 local function refreshRecipeBook()
     local data = getMyData()
     if not data then return end
-
+    
     local list = recipeBookGui.MainFrame.RecipeList
     for _, child in ipairs(list:GetChildren()) do
         if child:IsA("Frame") then child:Destroy() end
     end
-
+    
     local allRecipes = Recipes.getAllRecipeIds()
     local discoveredCount = 0
     local totalCount = 0
     local order = 0
-
-    -- Sort recipes by tier for better display
-    local sortedRecipes = {}
-    for key, pid in pairs(allRecipes) do
-        local p = Potions.Data[pid]
-        local tierOrder = {Common=1, Uncommon=2, Rare=3, Mythic=4, Divine=5}
-        table.insert(sortedRecipes, {key=key, potionId=pid, tierSort=p and tierOrder[p.tier] or 1})
-    end
-    table.sort(sortedRecipes, function(a,b) return a.tierSort < b.tierSort end)
-
-    for _, entry in ipairs(sortedRecipes) do
-        local recipeKey = entry.key
-        local potionId = entry.potionId
+    
+    for recipeKey, potionId in pairs(allRecipes) do
         totalCount = totalCount + 1
         order = order + 1
         local discovered = data.DiscoveredRecipes[recipeKey] == true
         if discovered then discoveredCount = discoveredCount + 1 end
-
+        
         local potion = Potions.Data[potionId]
         local parts = string.split(recipeKey, "|")
         local ing1 = Ingredients.Data[parts[1]]
         local ing2 = Ingredients.Data[parts[2]]
-
+        
         local item = Instance.new("Frame")
         item.Size = UDim2.new(1, 0, 0, 50)
         item.BackgroundColor3 = discovered and Color3.fromRGB(50, 45, 60) or Color3.fromRGB(35, 35, 40)
         item.LayoutOrder = order
         item.Parent = list
         Instance.new("UICorner", item).CornerRadius = UDim.new(0, 8)
-
+        
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Size = UDim2.new(0.5, -5, 0, 25)
         nameLabel.Position = UDim2.new(0, 10, 0, 3)
@@ -502,7 +444,7 @@ local function refreshRecipeBook()
         nameLabel.TextScaled = true
         nameLabel.TextXAlignment = Enum.TextXAlignment.Left
         nameLabel.Parent = item
-
+        
         local detailLabel = Instance.new("TextLabel")
         detailLabel.Size = UDim2.new(1, -20, 0, 18)
         detailLabel.Position = UDim2.new(0, 10, 0, 28)
@@ -511,33 +453,22 @@ local function refreshRecipeBook()
         detailLabel.TextScaled = true
         detailLabel.TextXAlignment = Enum.TextXAlignment.Left
         detailLabel.Parent = item
-
+        
         if discovered then
             nameLabel.Text = potion and potion.name or potionId
             nameLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
             local ing1Name = ing1 and ing1.name or parts[1]
             local ing2Name = ing2 and ing2.name or parts[2]
-            detailLabel.Text = ing1Name .. " + " .. ing2Name .. " -> " .. (potion and tostring(potion.sellValue) or "?") .. " coins"
+            detailLabel.Text = ing1Name .. " + " .. ing2Name .. " → " .. (potion and tostring(potion.sellValue) or "?") .. " coins"
             detailLabel.TextColor3 = Color3.fromRGB(180, 170, 200)
         else
             nameLabel.Text = "???"
             nameLabel.TextColor3 = Color3.fromRGB(100, 100, 110)
-            detailLabel.Text = table.concat((function()
-                local hh = {}
-                for _, pp in ipairs(parts) do
-                    local ii = Ingredients.Data[pp]
-                    if ii then
-                        table.insert(hh, "" .. ii.name .. "")
-                    else
-                        table.insert(hh, "[?]")
-                    end
-                end
-                return hh
-            end)(), " + ") .. " = ???"
-            detailLabel.TextColor3 = Color3.fromRGB(120, 110, 140)
+            detailLabel.Text = "Undiscovered recipe"
+            detailLabel.TextColor3 = Color3.fromRGB(80, 80, 90)
         end
     end
-
+    
     recipeBookGui.MainFrame.DiscoveryCounter.Text = "Discovered: " .. discoveredCount .. " / " .. totalCount
 end
 
@@ -559,10 +490,10 @@ end)
 -- ========== PROXIMITY PROMPTS ==========
 ProximityPromptService.PromptTriggered:Connect(function(prompt, triggerPlayer)
     if triggerPlayer ~= player then return end
-
+    
     local parent = prompt.Parent
     if not parent then return end
-
+    
     if parent.Name == "MarketStall" then
         closeAllGuis()
         marketGui.Enabled = true

@@ -29,7 +29,7 @@ local function showPopup(text, color, yOffset)
     label.Font = Enum.Font.GothamBold
     label.ZIndex = 15
     label.Parent = popupContainer
-
+    
     -- Animate: float up and fade out
     local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
     local tween = TweenService:Create(label, tweenInfo, {
@@ -48,7 +48,7 @@ local function showDiscoveryBanner(potionName, sellValue)
     discoveryBanner.Detail.Text = potionName .. " — Worth " .. sellValue .. " coins!"
     discoveryBanner.Visible = true
     discoveryBanner.BackgroundTransparency = 0.1
-
+    
     -- Flash effect
     local flash = TweenService:Create(discoveryBanner, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
         BackgroundTransparency = 0,
@@ -57,7 +57,7 @@ local function showDiscoveryBanner(potionName, sellValue)
     flash.Completed:Connect(function()
         TweenService:Create(discoveryBanner, TweenInfo.new(0.3), {BackgroundTransparency = 0.1}):Play()
     end)
-
+    
     -- Hide after 3 seconds
     task.delay(3, function()
         local fadeOut = TweenService:Create(discoveryBanner, TweenInfo.new(0.5), {
@@ -82,7 +82,7 @@ local function showZoneArrival(zoneName)
     zoneNotif.Text = "— " .. name .. " —"
     zoneNotif.TextTransparency = 0
     zoneNotif.Visible = true
-
+    
     task.delay(2, function()
         local fade = TweenService:Create(zoneNotif, TweenInfo.new(1), {
             TextTransparency = 1,
@@ -101,13 +101,13 @@ Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(newData)
     if prevData then
         -- Detect what changed
         local coinDiff = newData.Coins - prevData.Coins
-
+        
         if coinDiff > 0 then
             showPopup("+" .. coinDiff .. " coins", Color3.fromRGB(255, 215, 0))
         elseif coinDiff < 0 then
             showPopup(coinDiff .. " coins", Color3.fromRGB(255, 150, 150), 0.02)
         end
-
+        
         -- Detect new ingredients
         for id, qty in pairs(newData.Ingredients) do
             local oldQty = (prevData.Ingredients and prevData.Ingredients[id]) or 0
@@ -117,7 +117,7 @@ Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(newData)
                 showPopup("+" .. (qty - oldQty) .. " " .. name, Color3.fromRGB(100, 255, 150), 0.05)
             end
         end
-
+        
         -- Detect new potions
         for id, qty in pairs(newData.Potions) do
             local oldQty = (prevData.Potions and prevData.Potions[id]) or 0
@@ -131,7 +131,7 @@ Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(newData)
                 showPopup("Brewed: " .. name, color, 0.08)
             end
         end
-
+        
         -- Detect new recipe discoveries
         for key, _ in pairs(newData.DiscoveredRecipes) do
             if not prevData.DiscoveredRecipes[key] then
@@ -147,7 +147,7 @@ Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(newData)
             end
         end
     end
-
+    
     prevData = {}
     -- Deep copy
     prevData.Coins = newData.Coins
@@ -167,14 +167,14 @@ local function checkZone()
     if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-
+    
     local pos = hrp.Position
     local zones = workspace:FindFirstChild("Zones")
     if not zones then return end
-
+    
     local closestZone = nil
     local closestDist = math.huge
-
+    
     for _, zone in ipairs(zones:GetChildren()) do
         if zone:IsA("Model") then
             local floor = zone:FindFirstChild("Floor")
@@ -187,7 +187,7 @@ local function checkZone()
             end
         end
     end
-
+    
     if closestZone and closestZone ~= lastZone then
         lastZone = closestZone
         showZoneArrival(closestZone)
@@ -209,8 +209,7 @@ task.spawn(function()
     end
 end)
 
-print("[FeedbackController] Initialized")
-
+print(
 -- ========== GLOBAL ANNOUNCEMENTS ==========
 local announcementQueue = {}
 local isShowingAnnouncement = false
@@ -219,14 +218,14 @@ local function showNextAnnouncement()
     if isShowingAnnouncement or #announcementQueue == 0 then return end
     isShowingAnnouncement = true
     local msg = table.remove(announcementQueue, 1)
-
+    
     -- Create announcement banner at top of screen
     local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
     local banner = Instance.new("ScreenGui")
     banner.Name = "AnnouncementBanner"
     banner.DisplayOrder = 100
     banner.Parent = playerGui
-
+    
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(0.6, 0, 0, 40)
     frame.Position = UDim2.new(0.2, 0, 0, -50)
@@ -238,7 +237,7 @@ local function showNextAnnouncement()
     stroke.Color = Color3.fromRGB(255, 215, 0)
     stroke.Thickness = 2
     stroke.Parent = frame
-
+    
     local label = Instance.new("TextLabel")
     label.Size = UDim2.new(1, -20, 1, 0)
     label.Position = UDim2.new(0, 10, 0, 0)
@@ -248,11 +247,11 @@ local function showNextAnnouncement()
     label.TextScaled = true
     label.Font = Enum.Font.GothamBold
     label.Parent = frame
-
+    
     -- Animate slide in
     local TweenService = game:GetService("TweenService")
     TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Position = UDim2.new(0.2, 0, 0, 10) }):Play()
-
+    
     -- Wait and fade out
     task.delay(4, function()
         TweenService:Create(frame, TweenInfo.new(0.5), { Position = UDim2.new(0.2, 0, 0, -50) }):Play()
@@ -272,4 +271,4 @@ Remotes.GlobalAnnouncement.OnClientEvent:Connect(function(msg)
     showNextAnnouncement()
 end)
 
-print("[FeedbackController] Initialized")
+"[FeedbackController] Initialized")
