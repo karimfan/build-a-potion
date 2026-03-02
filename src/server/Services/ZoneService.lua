@@ -80,8 +80,8 @@ local function spawnRareNode()
     rareNodePart = Instance.new("Part")
     rareNodePart.Name = "RareForageNode"
     rareNodePart.Shape = Enum.PartType.Ball
-    rareNodePart.Size = Vector3.new(4, 4, 4)
-    rareNodePart.Position = Vector3.new(x, 2, z)
+    rareNodePart.Size = Vector3.new(5, 5, 5)
+    rareNodePart.Position = Vector3.new(x, 4, z)
     rareNodePart.Anchored = true
     rareNodePart.CanCollide = false
     rareNodePart.Material = Enum.Material.Neon
@@ -121,7 +121,8 @@ local function spawnRareNode()
     local prompt = Instance.new("ProximityPrompt")
     prompt.ActionText = "Forage"
     prompt.ObjectText = ingData and ingData.name or ingredientId
-    prompt.MaxActivationDistance = 10
+    prompt.MaxActivationDistance = 15
+    prompt.RequiresLineOfSight = false
     prompt.Parent = rareNodePart
 
     prompt.Triggered:Connect(function(triggerPlayer)
