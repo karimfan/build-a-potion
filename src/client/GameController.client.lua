@@ -291,6 +291,20 @@ marketGui.MainFrame.TitleBar.CloseBtn.MouseButton1Click:Connect(function()
     marketGui.Enabled = false
 end)
 
+-- Refresh market data whenever the market GUI becomes visible
+-- This ensures items are always shown when player opens the market
+marketGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+    if marketGui.Enabled then
+        task.spawn(function()
+            local freshState = Remotes.GetMarketOffers:InvokeServer()
+            if freshState then
+                marketState = freshState
+                refreshMarketUI()
+            end
+        end)
+    end
+end)
+
 
 -- ========== BREW TIMER HUD WIDGET ==========
 local brewTimerWidget = hudGui:WaitForChild("BrewTimerWidget")
