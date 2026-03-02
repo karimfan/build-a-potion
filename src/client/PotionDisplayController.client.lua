@@ -8,20 +8,15 @@ local Ingredients = require(RS.Shared.Config.Ingredients)
 local player = game.Players.LocalPlayer
 local displayedParts = {}
 
--- Shelf positions: {position, direction (along shelf)}
+-- Shelf positions on the Trophy Cabinet bookcase (east wall, X=46)
+-- 5 shelves at Y = 1.4, 3.6, 5.8, 8.0, 10.2
+-- Each shelf runs along Z from -39 to -20 (6 slots, ~3.2 stud spacing)
 local shelfPositions = {
-    -- Left wall lower
-    {origin = Vector3.new(-35, 3.5, -24), dir = Vector3.new(0, 0, 1), count = 5},
-    -- Left wall upper
-    {origin = Vector3.new(-35, 6, -24), dir = Vector3.new(0, 0, 1), count = 5},
-    -- Right wall lower
-    {origin = Vector3.new(35, 3.5, -24), dir = Vector3.new(0, 0, 1), count = 5},
-    -- Right wall upper
-    {origin = Vector3.new(35, 6, -24), dir = Vector3.new(0, 0, 1), count = 5},
-    -- Back wall lower
-    {origin = Vector3.new(-12, 3.5, -38), dir = Vector3.new(1, 0, 0), count = 5},
-    -- Back wall upper
-    {origin = Vector3.new(-12, 6, -38), dir = Vector3.new(1, 0, 0), count = 5},
+    {origin = Vector3.new(46, 1.4, -38), dir = Vector3.new(0, 0, 1), count = 6},
+    {origin = Vector3.new(46, 3.6, -38), dir = Vector3.new(0, 0, 1), count = 6},
+    {origin = Vector3.new(46, 5.8, -38), dir = Vector3.new(0, 0, 1), count = 6},
+    {origin = Vector3.new(46, 8.0, -38), dir = Vector3.new(0, 0, 1), count = 6},
+    {origin = Vector3.new(46, 10.2, -38), dir = Vector3.new(0, 0, 1), count = 6},
 }
 
 local function clearDisplays()
@@ -59,11 +54,11 @@ local function renderDisplays(potionDisplays)
         if idx > PDT.MaxDisplays then break end
 
         -- Determine shelf position
-        local shelfIdx = math.ceil(idx / 5)
+        local shelfIdx = math.ceil(idx / 6)
         if shelfIdx > #shelfPositions then break end
         local shelf = shelfPositions[shelfIdx]
-        local slotIdx = ((idx - 1) % 5)
-        local spacing = 5
+        local slotIdx = ((idx - 1) % 6)
+        local spacing = 3.2
         local pos = shelf.origin + shelf.dir * (slotIdx * spacing)
 
         -- Get potion info
@@ -113,25 +108,52 @@ local function renderDisplays(potionDisplays)
             light.Parent = vial
         end
 
-        -- Add particles for Rare+
-        if visual.particleRate and visual.particleRate > 0 then
-            local pe = Instance.new("ParticleEmitter")
-            pe.Color = ColorSequence.new(color)
-            pe.Size = NumberSequence.new({
-                NumberSequenceKeypoint.new(0, 0),
-                NumberSequenceKeypoint.new(0.5, 0.1),
+        -- Add particles — steam/sparkle effect, scaled by tier
+        local effectRate = visual.particleRate or 0
+        if mutation and PDT.MutationModifiers[mutation] and PDT.MutationModifiers[mutation].particleRate then
+            effectRate = math.max(effectRate, PDT.MutationModifiers[mutation].particleRate)
+        end
+        if effectRate > 0 then
+            -- Steam/mist rising from bottle
+            local steam = Instance.new("ParticleEmitter")
+            steam.Color = ColorSequence.new(color)
+            steam.Size = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 0.05),
+                NumberSequenceKeypoint.new(0.3, 0.15),
                 NumberSequenceKeypoint.new(1, 0)
             })
-            pe.Lifetime = NumberRange.new(0.5, 1.5)
-            pe.Rate = visual.particleRate
-            pe.Speed = NumberRange.new(0.3, 1)
-            pe.SpreadAngle = Vector2.new(180, 180)
-            pe.LightEmission = 1
-            pe.Transparency = NumberSequence.new({
-                NumberSequenceKeypoint.new(0, 0.5),
+            steam.Lifetime = NumberRange.new(0.8, 2)
+            steam.Rate = effectRate
+            steam.Speed = NumberRange.new(0.3, 1.2)
+            steam.SpreadAngle = Vector2.new(30, 30)
+            steam.LightEmission = 1
+            steam.Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 0.3),
+                NumberSequenceKeypoint.new(0.5, 0.6),
                 NumberSequenceKeypoint.new(1, 1)
             })
-            pe.Parent = vial
+            steam.Parent = vial
+
+            -- Sparkle burst for Mythic+ and special mutations
+            if tier == "Mythic" or tier == "Divine" or (mutation and (mutation == "Rainbow" or mutation == "Golden")) then
+                local sparkle = Instance.new("ParticleEmitter")
+                sparkle.Color = ColorSequence.new(Color3.fromRGB(255, 255, 220))
+                sparkle.Size = NumberSequence.new({
+                    NumberSequenceKeypoint.new(0, 0.08),
+                    NumberSequenceKeypoint.new(0.5, 0.02),
+                    NumberSequenceKeypoint.new(1, 0)
+                })
+                sparkle.Lifetime = NumberRange.new(0.3, 0.8)
+                sparkle.Rate = effectRate * 0.5
+                sparkle.Speed = NumberRange.new(1, 3)
+                sparkle.SpreadAngle = Vector2.new(180, 180)
+                sparkle.LightEmission = 1
+                sparkle.Transparency = NumberSequence.new({
+                    NumberSequenceKeypoint.new(0, 0),
+                    NumberSequenceKeypoint.new(1, 1)
+                })
+                sparkle.Parent = vial
+            end
         end
 
         -- Floating animation for Divine

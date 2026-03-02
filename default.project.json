@@ -69,6 +69,9 @@
           },
           "MutationTuning": {
             "$path": "src/shared/Config/MutationTuning.lua"
+          },
+          "PotionDisplayTuning": {
+            "$path": "src/shared/Config/PotionDisplayTuning.lua"
           }
         }
       }
@@ -98,6 +101,9 @@
         },
         "IngredientVisualFactory": {
           "$path": "src/client/IngredientVisualFactory.lua"
+        },
+        "PotionDisplayController": {
+          "$path": "src/client/PotionDisplayController.client.lua"
         }
       }
     }
