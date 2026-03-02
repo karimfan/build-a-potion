@@ -61,6 +61,26 @@ local function updateSlotDisplay()
             slot.BackgroundColor3 = Color3.fromRGB(60, 55, 65)
         end
     end
+
+    -- Brew preview: show what this combo will produce
+    local brewBtn = cauldronGui.MainFrame.BrewBtn
+    if selectedSlots[1] and selectedSlots[2] then
+        local previewId = Recipes.lookup(selectedSlots[1], selectedSlots[2], selectedSlots[3] ~= "" and selectedSlots[3] or nil)
+        if previewId and previewId ~= "sludge" then
+            local potion = Potions.Data[previewId]
+            local potionName = potion and potion.name or previewId
+            local tier = potion and potion.tier or "Common"
+            local value = potion and potion.sellValue or 0
+            brewBtn.Text = "Brew: " .. potionName .. " (" .. tier .. ", " .. value .. " coins)"
+            brewBtn.BackgroundColor3 = Color3.fromRGB(50, 140, 50)
+        else
+            brewBtn.Text = "Brew: Unknown combo (might be sludge!)"
+            brewBtn.BackgroundColor3 = Color3.fromRGB(140, 100, 40)
+        end
+    else
+        brewBtn.Text = "Select 2 ingredients"
+        brewBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 90)
+    end
 end
 
 local function refreshCauldronIngredients()
