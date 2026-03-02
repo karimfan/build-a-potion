@@ -8,6 +8,9 @@
       "Bootstrap": {
         "$path": "src/server/Bootstrap.server.lua"
       },
+      "FallSafety": {
+        "$path": "src/server/FallSafety.server.lua"
+      },
       "Services": {
         "$className": "Folder",
         "PlayerDataService": {
