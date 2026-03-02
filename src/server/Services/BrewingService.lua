@@ -221,16 +221,18 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
     end
     data.Potions[finalPotionKey] = (data.Potions[finalPotionKey] or 0) + 1
 
-    -- Add to potion display collection
-    if not data.PotionDisplays then data.PotionDisplays = {} end
-    if #data.PotionDisplays >= 30 then
-        table.remove(data.PotionDisplays, 1) -- remove oldest
+    -- Add to potion display collection (skip sludge — trophy cabinet only)
+    if potionId ~= "sludge" then
+        if not data.PotionDisplays then data.PotionDisplays = {} end
+        if #data.PotionDisplays >= 30 then
+            table.remove(data.PotionDisplays, 1) -- remove oldest
+        end
+        table.insert(data.PotionDisplays, {
+            potionId = potionId,
+            mutation = mutation,
+            brewedUnix = os.time(),
+        })
     end
-    table.insert(data.PotionDisplays, {
-        potionId = potionId,
-        mutation = mutation,
-        brewedUnix = os.time(),
-    })
     local potion = Potions.Data[potionId]
     local potionName = potion and potion.name or "Unknown"
     local sellValue = potion and potion.sellValue or 0
