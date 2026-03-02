@@ -30,33 +30,33 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
     if rateLimited(player) then
         return { success = false, error = "Too fast! Wait a moment." }
     end
-    
+
     -- Validate inputs
     if type(ingredientId1) ~= "string" or type(ingredientId2) ~= "string" then
         return { success = false, error = "Invalid ingredients." }
     end
-    
+
     local pds = _G.PlayerDataService
     if not pds then
         return { success = false, error = "Server not ready." }
     end
-    
+
     local data = pds.getData(player)
     if not data then
         return { success = false, error = "Player data not loaded." }
     end
-    
+
     -- Check no active brew
     if data.ActiveBrew and data.ActiveBrew.Status ~= BrewStatus.Idle then
         return { success = false, error = "Already brewing! Wait for current brew to finish." }
     end
-    
+
     -- Validate player owns both ingredients
     -- V3: Get ingredient counts from stacks
     local pdsUtil = _G.PlayerDataService
     local owned1 = pdsUtil and pdsUtil.getIngredientCount(data, ingredientId1) or 0
     local owned2 = pdsUtil and pdsUtil.getIngredientCount(data, ingredientId2) or 0
-    
+
     if ingredientId1 == ingredientId2 then
         if owned1 < 2 then
             return { success = false, error = "Not enough " .. ingredientId1 .. "." }
@@ -69,7 +69,7 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
             return { success = false, error = "You don't have " .. ingredientId2 .. "." }
         end
     end
-    
+
     -- Consume ingredients atomically
     -- V3: Consume from stacks (FIFO - oldest first)
     local freshness1, freshness2 = 1.0, 1.0
@@ -84,13 +84,13 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
         freshness2 = f2
     end
     local avgFreshness = (freshness1 + freshness2) / 2
-    
+
     -- Resolve recipe
     local potionId = Recipes.lookup(unpack(({ingredientId1, ingredientId2, ingredientId3 ~= '' and ingredientId3 or nil})))
     if not potionId then
         potionId = "sludge"
     end
-    
+
     -- Check for new discovery
     local isNewDiscovery = false
     if potionId ~= "sludge" then
@@ -102,7 +102,7 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
             isNewDiscovery = true
         end
     end
-    
+
     -- Determine brew duration from potion rarity
     local potion = Potions.Data[potionId]
     local rarity = potion and potion.tier or "Common"
@@ -115,10 +115,11 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
         if tierData then
             duration = math.floor(duration * (1 - tierData.brewTimeReduction))
         end
-    end    if potionId == "sludge" then
+    end
+    if potionId == "sludge" then
         duration = BrewTuning.SludgeTimer
     end
-    
+
     -- Set ActiveBrew state
     local now = os.time()
     data.ActiveBrew = {
@@ -130,14 +131,14 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
         ResultPotionId = potionId,
         IsNewDiscovery = isNewDiscovery,
     }
-    
+
     -- Force save (critical transition)
     pds.forceSave(player)
     pds.notifyClient(player)
-    
+
     local potionName = potion and potion.name or "Unknown"
     print("[BrewingService] " .. player.Name .. " started brewing " .. potionName .. " (" .. duration .. "s)")
-    
+
     return {
         success = true,
         potionId = potionId,
@@ -157,19 +158,19 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
     if rateLimited(player) then
         return { success = false, error = "Too fast!" }
     end
-    
+
     local pds = _G.PlayerDataService
     if not pds then
         return { success = false, error = "Server not ready." }
     end
-    
+
     local data = pds.getData(player)
     if not data or not data.ActiveBrew then
         return { success = false, error = "No active brew." }
     end
-    
+
     local brew = data.ActiveBrew
-    
+
     -- Check if brew is done
     if brew.Status == BrewStatus.Brewing then
         if os.time() < brew.EndUnix then
@@ -179,11 +180,11 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
         -- Timer expired, transition to completed
         brew.Status = BrewStatus.CompletedUnclaimed
     end
-    
+
     if brew.Status ~= BrewStatus.CompletedUnclaimed then
         return { success = false, error = "No completed brew to claim." }
     end
-    
+
     -- Grant potion to inventory
     local potionId = brew.ResultPotionId
     -- Roll mutation (2-stage)
@@ -199,7 +200,7 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
         local ic = IngredientsConfig.Data[brew.IngredientB]
         if ic then table.insert(ingredientTiers, ic.tier) end
     end
-    
+
     -- Stage 1: Does mutation occur?
     local mutChance = MutationTuning.calculateChance(ingredientTiers, 0.8) -- avg freshness estimate
     -- Add cauldron upgrade mutation bonus
@@ -209,29 +210,30 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
         if tierData then
             mutChance = math.min(mutChance + tierData.mutationBonus, 0.20)
         end
-    end    if potionId ~= "sludge" and math.random() <= mutChance then
+    end
+    if potionId ~= "sludge" and math.random() <= mutChance then
         -- Stage 2: Which mutation?
         mutation = MutationTuning.rollMutationType()
     end
-    
+
     -- Grant potion (with mutation compound key if mutated)
     local finalPotionKey = potionId
     if mutation then
         finalPotionKey = potionId .. "__" .. mutation
     end
     data.Potions[finalPotionKey] = (data.Potions[finalPotionKey] or 0) + 1
-    
+
     local potion = Potions.Data[potionId]
     local potionName = potion and potion.name or "Unknown"
     local sellValue = potion and potion.sellValue or 0
     local isNewDiscovery = brew.IsNewDiscovery
-    
+
     -- Update BrewStats
     local stats = data.BrewStats
     stats.TotalBrewed = (stats.TotalBrewed or 0) + 1
     stats.TotalValueBrewed = (stats.TotalValueBrewed or 0) + sellValue
     stats.PotionCounts[potionId] = (stats.PotionCounts[potionId] or 0) + 1
-    
+
     -- Streak logic
     if potionId == "sludge" then
         stats.CurrentStreak = 0
@@ -241,12 +243,12 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
             stats.BestStreak = stats.CurrentStreak
         end
     end
-    
+
     -- Check evolution tier change
     local oldTier = BrewTuning.getEvolutionTier((stats.TotalBrewed or 1) - 1)
     local newTier = BrewTuning.getEvolutionTier(stats.TotalBrewed)
     local tierChanged = oldTier.tier ~= newTier.tier
-    
+
     -- Clear ActiveBrew
     data.ActiveBrew = {
         Status = BrewStatus.Idle,
@@ -257,14 +259,15 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
         ResultPotionId = "",
         IsNewDiscovery = false,
     }
-    
+
     -- Force save (critical transition)
     pds.forceSave(player)
     -- Recompute score after brew
-    if _G.ScoreService then _G.ScoreService.recomputeScore(data) end    pds.notifyClient(player)
-    
-    print("[BrewingService] " .. player.Name .. " claimed " .. potionName .. 
-    
+    if _G.ScoreService then _G.ScoreService.recomputeScore(data) end
+    pds.notifyClient(player)
+
+    print("[BrewingService] " .. player.Name .. " claimed " .. potionName)
+
     -- Global announcement for Mythic/Divine or Rainbow/Golden
     local shouldAnnounce = false
     local announceMsg = ""
@@ -283,9 +286,8 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
             end)
         end
         print("[BrewingService] GLOBAL ANNOUNCEMENT: " .. announceMsg)
-    end        (isNewDiscovery and " (NEW DISCOVERY!)" or "") ..
-        (tierChanged and (" [TIER UP: " .. newTier.name .. "]") or ""))
-    
+    end
+
     return {
         success = true,
         potionId = potionId,
@@ -300,10 +302,10 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
             BestStreak = stats.BestStreak,
         },
         tierChanged = tierChanged,
-
         mutation = mutation,
         mutationMultiplier = mutation and MutationTuning.Types[mutation] and MutationTuning.Types[mutation].sellMultiplier or nil,
-        finalSellValue = mutation and MutationTuning.Types[mutation] and math.floor(sellValue * MutationTuning.Types[mutation].sellMultiplier) or sellValue,        newTier = tierChanged and newTier or nil,
+        finalSellValue = mutation and MutationTuning.Types[mutation] and math.floor(sellValue * MutationTuning.Types[mutation].sellMultiplier) or sellValue,
+        newTier = tierChanged and newTier or nil,
     }
 end
 
@@ -313,17 +315,17 @@ end
 Remotes.GetActiveBrewState.OnServerInvoke = function(player)
     local pds = _G.PlayerDataService
     if not pds then return nil end
-    
+
     local data = pds.getData(player)
     if not data or not data.ActiveBrew then return nil end
-    
+
     local brew = data.ActiveBrew
-    
+
     -- Auto-transition if timer expired
     if brew.Status == BrewStatus.Brewing and os.time() >= brew.EndUnix then
         brew.Status = BrewStatus.CompletedUnclaimed
     end
-    
+
     return {
         status = brew.Status,
         startUnix = brew.StartUnix,
