@@ -260,79 +260,101 @@ end
 cauldronGui.MainFrame.BrewBtn.MouseButton1Click:Connect(function()
     if isBrewing then return end
     if not selectedSlots[1] or not selectedSlots[2] then return end
-    -- IMMEDIATELY close the GUI - no modal, no "Starting brew..." text
+
     local ing1, ing2, ing3 = selectedSlots[1], selectedSlots[2], selectedSlots[3]
+
+    -- CLOSE GUI IMMEDIATELY
     cauldronGui.Enabled = false
     isBrewing = true
-    -- Show HUD widget immediately
-    local hg = player:WaitForChild("PlayerGui"):FindFirstChild("HudGui")
-    if hg then
-        local widget = hg:FindFirstChild("BrewTimerWidget")
-        if widget then
-            widget.Visible = true
-            widget.PotionName.Text = "Starting brew..."
-        end
+
+    -- Get HUD widget reference
+    local hGui = player:WaitForChild("PlayerGui"):FindFirstChild("HudGui")
+    local timerWidget = hGui and hGui:FindFirstChild("BrewTimerWidget")
+    if timerWidget then
+        timerWidget.Visible = true
+        timerWidget.PotionName.Text = "Starting brew..."
+        timerWidget.Countdown.Text = "..."
     end
-    -- Now call server (async from player's perspective - GUI is already closed)
+
+    -- Call server
     local result = Remotes.BrewPotion:InvokeServer(ing1, ing2, ing3 or "")
+
     if result and result.success then
-        local badge = cauldronGui.MainFrame:FindFirstChild("RarityBadge")
-        if badge then
-            badge.Text = result.rarity
-            local rc = {Common=Color3.fromRGB(80,140,80), Uncommon=Color3.fromRGB(60,120,180), Rare=Color3.fromRGB(200,170,50), Mythic=Color3.fromRGB(180,60,200)}
-            badge.BackgroundColor3 = rc[result.rarity] or Color3.fromRGB(100, 80, 150)
+        -- Update widget with potion name
+        if timerWidget then
+            timerWidget.PotionName.Text = "Brewing " .. (result.potionName or "potion") .. "..."
         end
-        -- Update HUD widget with potion info
-        local hg3 = player:WaitForChild("PlayerGui"):FindFirstChild("HudGui")
-        if hg3 then
-            local widget = hg3:FindFirstChild("BrewTimerWidget")
-            if widget then
-                widget.PotionName.Text = "Brewing " .. (result.potionName or "potion") .. "..."
-        -- Local countdown timer on HUD widget
-        task.spawn(function()
-            local bEndT = result.endUnix
-            local bDurT = result.brewDuration
-            while isBrewing do
-                local rem = math.max(0, bEndT - os.time())
-                local pct = math.clamp(1 - rem / bDurT, 0, 1)
-                local mins = math.floor(rem / 60)
-                local secs = rem % 60
-                widget.Countdown.Text = string.format("Time to brew: %d:%02d", mins, secs)
-                local wFill = widget.ProgressBg and widget.ProgressBg:FindFirstChild("Fill")
-                if wFill then
-                    wFill.Size = UDim2.new(pct, 0, 1, 0)
-                    wFill.BackgroundColor3 = Color3.new(0.3 + pct*0.7, 0.8 - pct*0.3, 0.5 - pct*0.3)
-                end
-                if rem <= 0 then
-                    widget.Countdown.Text = "Complete!"
-                    break
-                end
-                task.wait(1)
-            end
-        end)            end
-        end
-        startBrewTimer(result.brewDuration, result.endUnix)
 
         -- Fire VFX event
-        local brewEvent = game.ReplicatedStorage:WaitForChild("BrewStateEvent", 5)
+        local brewEvent = game.ReplicatedStorage:FindFirstChild("BrewStateEvent")
         if brewEvent then
             brewEvent:Fire("start", { duration = result.brewDuration, endUnix = result.endUnix, rarity = result.rarity })
-        end    else
-        -- Brew failed - show error on HUD widget briefly then hide
-        isBrewing = false
-        local hg2 = player:WaitForChild("PlayerGui"):FindFirstChild("HudGui")
-        if hg2 then
-            local widget = hg2:FindFirstChild("BrewTimerWidget")
-            if widget then
-                widget.PotionName.Text = result and result.error or "Brew failed!"
-                widget.Countdown.Text = ""
-                task.delay(3, function()
-                    widget.Visible = false
-                end)
+        end
+
+        -- Run local countdown on HUD widget
+        local bEndTime = result.endUnix
+        local bDuration = result.brewDuration
+
+        task.spawn(function()
+            while isBrewing do
+                local remaining = math.max(0, bEndTime - os.time())
+                local pct = math.clamp(1 - remaining / bDuration, 0, 1)
+                local mins = math.floor(remaining / 60)
+                local secs = remaining % 60
+
+                if timerWidget then
+                    timerWidget.Countdown.Text = string.format("Time to brew: %d:%02d", mins, secs)
+                    local wFill = timerWidget:FindFirstChild("ProgressBg") and timerWidget.ProgressBg:FindFirstChild("Fill")
+                    if wFill then
+                        wFill.Size = UDim2.new(pct, 0, 1, 0)
+                        wFill.BackgroundColor3 = Color3.new(0.3 + pct*0.7, 0.8 - pct*0.3, 0.5 - pct*0.3)
+                    end
+                end
+
+                if remaining <= 0 then
+                    -- Auto-claim
+                    local claimResult = Remotes.ClaimBrewResult:InvokeServer()
+                    isBrewing = false
+
+                    if claimResult and claimResult.success then
+                        if timerWidget then
+                            local mutPrefix = claimResult.mutation and (claimResult.mutation .. " ") or ""
+                            timerWidget.PotionName.Text = mutPrefix .. (claimResult.potionName or "Potion") .. "!"
+                            timerWidget.Countdown.Text = "+" .. (claimResult.finalSellValue or claimResult.sellValue or 0) .. " coins"
+                            timerWidget.ProgressBg.Fill.BackgroundColor3 = Color3.fromRGB(255, 215, 0)
+                            timerWidget.ProgressBg.Fill.Size = UDim2.new(1, 0, 1, 0)
+                        end
+
+                        selectedSlots = {nil, nil, nil}
+
+                        task.wait(4)
+                        if timerWidget then timerWidget.Visible = false end
+                    else
+                        if timerWidget then
+                            timerWidget.PotionName.Text = "Brew failed"
+                            task.wait(3)
+                            timerWidget.Visible = false
+                        end
+                    end
+                    break
+                end
+
+                task.wait(1)
             end
+        end)
+    else
+        -- Brew failed
+        isBrewing = false
+        if timerWidget then
+            timerWidget.PotionName.Text = result and result.error or "Brew failed!"
+            timerWidget.Countdown.Text = ""
+            task.delay(3, function()
+                timerWidget.Visible = false
+            end)
         end
     end
 end)
+
 cauldronGui:GetPropertyChangedSignal("Enabled"):Connect(function()
     if cauldronGui.Enabled then
         if not checkActiveBrewState() then
@@ -484,7 +506,7 @@ local function refreshRecipeBook()
             nameLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
             local ing1Name = ing1 and ing1.name or parts[1]
             local ing2Name = ing2 and ing2.name or parts[2]
-            detailLabel.Text = ing1Name .. " + " .. ing2Name .. " -> " .. (potion and tostring(potion.sellValue) or "?") .. " coins"
+            detailLabel.Text = ing1Name .. " + " .. ing2Name .. " → " .. (potion and tostring(potion.sellValue) or "?") .. " coins"
             detailLabel.TextColor3 = Color3.fromRGB(180, 170, 200)
         else
             nameLabel.Text = "???"
