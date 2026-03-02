@@ -288,7 +288,7 @@ local function runBrewAnimation(duration, endUnix, rarity)
     isAnimating = true
     startSpoonOrbit()
 
-    local multMap = { Common = 1, Uncommon = 1.3, Rare = 1.8, Mythic = 2.5 }
+    local multMap = { Common = 1, Uncommon = 1.5, Rare = 2.5, Mythic = 4, Divine = 6 }
     local mult = multMap[rarity] or 1
 
     -- Update loop

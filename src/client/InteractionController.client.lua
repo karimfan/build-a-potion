@@ -479,13 +479,21 @@ local function refreshRecipeBook()
             nameLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
             local ing1Name = ing1 and ing1.name or parts[1]
             local ing2Name = ing2 and ing2.name or parts[2]
-            detailLabel.Text = ing1Name .. " + " .. ing2Name .. " → " .. (potion and tostring(potion.sellValue) or "?") .. " coins"
+            local ing3Name = parts[3] and (Ingredients.Data[parts[3]] and Ingredients.Data[parts[3]].name or parts[3]) or nil
+            local combo = ing1Name .. " + " .. ing2Name .. (ing3Name and (" + " .. ing3Name) or "")
+            detailLabel.Text = combo .. " → " .. (potion and tostring(potion.sellValue) or "?") .. " coins"
             detailLabel.TextColor3 = Color3.fromRGB(180, 170, 200)
         else
-            nameLabel.Text = "???"
-            nameLabel.TextColor3 = Color3.fromRGB(100, 100, 110)
-            detailLabel.Text = "Undiscovered recipe"
-            detailLabel.TextColor3 = Color3.fromRGB(80, 80, 90)
+            -- Show ingredient hints so players know what to try
+            local ing1Name = ing1 and ing1.name or parts[1]
+            local ing2Name = ing2 and ing2.name or parts[2]
+            local ing3Name = parts[3] and (Ingredients.Data[parts[3]] and Ingredients.Data[parts[3]].name or parts[3]) or nil
+            local hint = ing1Name .. " + " .. ing2Name .. (ing3Name and (" + " .. ing3Name) or "")
+            nameLabel.Text = "??? — Try: " .. hint
+            nameLabel.TextColor3 = Color3.fromRGB(180, 160, 100)
+            local tier = potion and potion.tier or "Unknown"
+            detailLabel.Text = "Hint: " .. tier .. " tier potion"
+            detailLabel.TextColor3 = Color3.fromRGB(120, 110, 80)
         end
     end
     
