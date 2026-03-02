@@ -517,7 +517,7 @@ local function refreshRecipeBook()
             nameLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
             local ing1Name = ing1 and ing1.name or parts[1]
             local ing2Name = ing2 and ing2.name or parts[2]
-            detailLabel.Text = ing1Name .. " + " .. ing2Name .. " → " .. (potion and tostring(potion.sellValue) or "?") .. " coins"
+            detailLabel.Text = ing1Name .. " + " .. ing2Name .. " -> " .. (potion and tostring(potion.sellValue) or "?") .. " coins"
             detailLabel.TextColor3 = Color3.fromRGB(180, 170, 200)
         else
             nameLabel.Text = "???"
@@ -527,7 +527,7 @@ local function refreshRecipeBook()
                 for _, pp in ipairs(parts) do
                     local ii = Ingredients.Data[pp]
                     if ii then
-                        table.insert(hh, "[" .. ii.tier .. " " .. ii.element .. "]")
+                        table.insert(hh, "" .. ii.name .. "")
                     else
                         table.insert(hh, "[?]")
                     end
