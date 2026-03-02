@@ -59,6 +59,7 @@ local function getDefaultProfile()
         DailyDemandState = {
             LastSoldDateKey = "",
             SoldPotionIds = {},
+        PotionDisplays = {},
         },
     }
 end
@@ -120,6 +121,7 @@ local function migrateProfile(data)
             data.Upgrades = { CauldronTier = 1, BrewStations = 1, StorageSlots = 20 }
         end
         if not data.DailyDemandState then
+    if not data.PotionDisplays then data.PotionDisplays = {} end
             data.DailyDemandState = { LastSoldDateKey = "", SoldPotionIds = {} }
         end
         data.Version = 4
