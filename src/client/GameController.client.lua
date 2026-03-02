@@ -206,13 +206,10 @@ local function refreshMarketUI()
         Instance.new("UICorner", buyBtn).CornerRadius = UDim.new(0, 8)
         
         buyBtn.MouseButton1Click:Connect(function()
+            if offer.stock <= 0 then return end
+            buyBtn.Text = "..."
             Remotes.BuyIngredient:FireServer(offer.ingredientId, 1)
-            offer.stock = math.max(0, offer.stock - 1)
-            priceLabel.Text = offer.price .. " coins | Stock: " .. offer.stock
-            if offer.stock <= 0 then
-                buyBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-                buyBtn.Text = "Out"
-            end
+            -- Do NOT optimistically decrement stock — wait for server MarketRefresh
         end)
         
         if offer.stock <= 0 then
@@ -220,8 +217,23 @@ local function refreshMarketUI()
             buyBtn.Text = "Out"
         end
         
-        -- Rarity badge
-        if tier == "Rare" or tier == "Mythic" or tier == "Divine" then
+        -- Flash Sale badge (gold, prominent)
+        if offer.flashSale then
+            local flashBadge = Instance.new("TextLabel")
+            flashBadge.Size = UDim2.new(0, 80, 0, 18)
+            flashBadge.Position = UDim2.new(1, -145, 0, 2)
+            flashBadge.BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+            flashBadge.Text = "FLASH SALE"
+            flashBadge.TextColor3 = Color3.fromRGB(40, 20, 0)
+            flashBadge.TextScaled = true
+            flashBadge.Font = Enum.Font.GothamBlack
+            flashBadge.Parent = card
+            Instance.new("UICorner", flashBadge).CornerRadius = UDim.new(0, 6)
+            -- Gold border for flash sale
+            stroke.Color = Color3.fromRGB(255, 215, 0)
+            stroke.Thickness = 3
+        elseif tier == "Rare" or tier == "Mythic" or tier == "Divine" then
+            -- Rarity badge
             local badge = Instance.new("TextLabel")
             badge.Size = UDim2.new(0, 55, 0, 16)
             badge.Position = UDim2.new(1, -130, 0, 2)
@@ -232,6 +244,14 @@ local function refreshMarketUI()
             badge.Font = Enum.Font.GothamBlack
             badge.Parent = card
             Instance.new("UICorner", badge).CornerRadius = UDim.new(0, 6)
+        end
+
+        -- Sold Out state
+        if offer.stock <= 0 then
+            buyBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            buyBtn.Text = "Sold Out"
+            buyBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+            card.BackgroundTransparency = 0.4
         end
     end
 end
