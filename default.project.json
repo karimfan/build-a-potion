@@ -107,6 +107,9 @@
         },
         "PotionDisplayController": {
           "$path": "src/client/PotionDisplayController.client.lua"
+        },
+        "ShopRealmController": {
+          "$path": "src/client/ShopRealmController.client.lua"
         }
       }
     }

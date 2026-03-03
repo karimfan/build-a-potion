@@ -4,6 +4,7 @@ local RS = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Remotes = RS.Remotes
+local Potions = require(RS.Shared.Config.Potions)
 
 local player = game.Players.LocalPlayer
 
@@ -56,7 +57,7 @@ local function makeEmitter(name, parent, props)
 end
 
 -- All stage emitters
-local steamE, sparkE, fireE, fireworkE, bigFireE, magicSwirl
+local steamE, sparkE, fireE, fireworkE, bigFireE, magicSwirl, arcaneDustE, voidFlareE
 
 local function setupEmitters()
     if not cauldron then return end
@@ -177,6 +178,43 @@ local function setupEmitters()
         LightEmission = 1,
         RotSpeed = NumberRange.new(-90, 90),
     })
+
+    -- Arcane dust for high-tier magical identity
+    arcaneDustE = makeEmitter("ArcaneDust", cauldron, {
+        Color = ColorSequence.new(Color3.fromRGB(150, 200, 255), Color3.fromRGB(190, 120, 255)),
+        Size = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.05),
+            NumberSequenceKeypoint.new(0.4, 0.14),
+            NumberSequenceKeypoint.new(1, 0),
+        }),
+        Lifetime = NumberRange.new(1.2, 2.8),
+        Speed = NumberRange.new(0.5, 1.7),
+        SpreadAngle = Vector2.new(180, 180),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.2),
+            NumberSequenceKeypoint.new(1, 1),
+        }),
+        LightEmission = 1,
+        RotSpeed = NumberRange.new(-80, 80),
+    })
+
+    -- Void flare for mythic/divine
+    voidFlareE = makeEmitter("VoidFlare", cauldron, {
+        Color = ColorSequence.new(Color3.fromRGB(110, 80, 255), Color3.fromRGB(240, 210, 255)),
+        Size = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.2),
+            NumberSequenceKeypoint.new(0.4, 0.8),
+            NumberSequenceKeypoint.new(1, 0),
+        }),
+        Lifetime = NumberRange.new(0.4, 1.2),
+        Speed = NumberRange.new(5, 14),
+        SpreadAngle = Vector2.new(30, 30),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.08),
+            NumberSequenceKeypoint.new(1, 1),
+        }),
+        LightEmission = 1,
+    })
 end
 
 -- Spoon orbit animation
@@ -236,23 +274,56 @@ local function updateBrewVFX(pct, mult)
     if sparkE then sparkE.Rate = pct >= 0.25 and (15 + (pct - 0.25) * 40 * mult) or 0 end
     -- Stage 3: Fire at 50%+
     if fireE then fireE.Rate = pct >= 0.5 and (10 + (pct - 0.5) * 35 * mult) or 0 end
+    -- Stage 4: Arcane dust at 35%+ for all, stronger with rarity
+    if arcaneDustE then arcaneDustE.Rate = pct >= 0.35 and (8 + (pct - 0.35) * 38 * mult) or 0 end
+    -- Stage 5: Void flare near completion on high multipliers
+    if voidFlareE then voidFlareE.Rate = (mult >= 3 and pct >= 0.78) and (20 + (pct - 0.78) * 300 * (mult / 3)) or 0 end
+end
+
+local function playShockwave(mult, rarity)
+    if not cauldron then return end
+    local ring = Instance.new("Part")
+    ring.Name = "BrewShockwave"
+    ring.Anchored = true
+    ring.CanCollide = false
+    ring.CastShadow = false
+    ring.Shape = Enum.PartType.Cylinder
+    ring.Material = Enum.Material.Neon
+    ring.Color = (rarity == "Divine") and Color3.fromRGB(255, 240, 180) or ((rarity == "Mythic") and Color3.fromRGB(190, 120, 255) or Color3.fromRGB(130, 190, 255))
+    ring.Size = Vector3.new(0.15, 2, 2)
+    ring.CFrame = CFrame.new(cauldron.Position + Vector3.new(0, 0.4, 0)) * CFrame.Angles(0, 0, math.rad(90))
+    ring.Transparency = 0.15
+    ring.Parent = cauldron.Parent
+    TweenService:Create(ring, TweenInfo.new(0.65, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = Vector3.new(0.15, 36 * mult, 36 * mult),
+        Transparency = 1,
+    }):Play()
+    task.delay(0.7, function()
+        if ring and ring.Parent then ring:Destroy() end
+    end)
 end
 
 -- Completion burst
-local function playCompletionBurst(mult)
+local function playCompletionBurst(mult, rarity)
     mult = mult or 1
     -- Big fire column
-    if bigFireE then bigFireE.Rate = 100 * mult end
+    if bigFireE then bigFireE.Rate = 140 * mult end
     -- Fireworks
-    if fireworkE then fireworkE.Rate = 120 * mult end
+    if fireworkE then fireworkE.Rate = 140 * mult end
     -- Max sparks
-    if sparkE then sparkE.Rate = 80 * mult end
+    if sparkE then sparkE.Rate = 120 * mult end
+    if arcaneDustE then arcaneDustE.Rate = 90 * mult end
+    if voidFlareE and (rarity == "Mythic" or rarity == "Divine") then
+        voidFlareE.Rate = 140 * mult
+    end
     -- Flash glow
     if cauldronGlow then
-        cauldronGlow.Range = 100
-        cauldronGlow.Brightness = 15
-        cauldronGlow.Color = Color3.new(1, 1, 0.8)
+        cauldronGlow.Range = 110 + mult * 10
+        cauldronGlow.Brightness = 16 + mult * 2
+        cauldronGlow.Color = rarity == "Divine" and Color3.fromRGB(255, 235, 180) or Color3.new(1, 1, 0.85)
     end
+
+    playShockwave(math.clamp(mult, 1, 3), rarity)
 
     task.delay(0.8, function()
         if bigFireE then bigFireE.Rate = 0 end
@@ -261,6 +332,8 @@ local function playCompletionBurst(mult)
     task.delay(1.5, function()
         if fireworkE then fireworkE.Rate = 0 end
         if sparkE then sparkE.Rate = 0 end
+        if arcaneDustE then arcaneDustE.Rate = 0 end
+        if voidFlareE then voidFlareE.Rate = 0 end
     end)
     task.delay(2, function()
         resetVFX()
@@ -288,7 +361,7 @@ local function runBrewAnimation(duration, endUnix, rarity)
     isAnimating = true
     startSpoonOrbit()
 
-    local multMap = { Common = 1, Uncommon = 1.5, Rare = 2.5, Mythic = 4, Divine = 6 }
+    local multMap = { Common = 1, Uncommon = 1.8, Rare = 3.2, Mythic = 5.6, Divine = 8.5 }
     local mult = multMap[rarity] or 1
 
     -- Update loop
@@ -305,7 +378,7 @@ local function runBrewAnimation(duration, endUnix, rarity)
 
         if pct >= 1 then
             conn:Disconnect()
-            playCompletionBurst(mult)
+            playCompletionBurst(mult, rarity)
             isAnimating = false
             stopSpoonOrbit()
         end
@@ -334,7 +407,12 @@ task.spawn(function()
         local remaining = math.max(0, state.endUnix - now)
         if remaining > 0 then
             local duration = state.endUnix - state.startUnix
-            runBrewAnimation(duration, state.endUnix, "Common")
+            local baseId = state.resultPotionId or "sludge"
+            local sep = baseId:find("__")
+            if sep then baseId = baseId:sub(1, sep - 1) end
+            local potion = Potions.Data[baseId]
+            local rarity = potion and potion.tier or "Common"
+            runBrewAnimation(duration, state.endUnix, rarity)
         end
     end
 end)
