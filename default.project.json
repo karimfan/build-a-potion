@@ -36,6 +36,9 @@
         },
         "DailyDemandService": {
           "$path": "src/server/Services/DailyDemandService.lua"
+        },
+        "WildGroveDecorationService": {
+          "$path": "src/server/Services/WildGroveDecorationService.lua"
         }
       }
     },
