@@ -8,16 +8,21 @@ local Ingredients = require(RS.Shared.Config.Ingredients)
 local player = game.Players.LocalPlayer
 local displayedParts = {}
 
--- Shelf positions on the Trophy Cabinet bookcase (east wall, X=46)
--- 5 shelves at Y = 1.4, 3.6, 5.8, 8.0, 10.2
--- Each shelf runs along Z from -39 to -20 (6 slots, ~3.2 stud spacing)
-local shelfPositions = {
-    {origin = Vector3.new(46, 1.4, -38), dir = Vector3.new(0, 0, 1), count = 6},
-    {origin = Vector3.new(46, 3.6, -38), dir = Vector3.new(0, 0, 1), count = 6},
-    {origin = Vector3.new(46, 5.8, -38), dir = Vector3.new(0, 0, 1), count = 6},
-    {origin = Vector3.new(46, 8.0, -38), dir = Vector3.new(0, 0, 1), count = 6},
-    {origin = Vector3.new(46, 10.2, -38), dir = Vector3.new(0, 0, 1), count = 6},
-}
+-- Display positions: 6 glass dome pedestals in semicircle around cauldron
+-- Each pedestal holds up to 5 potions stacked vertically (30 total)
+-- Pedestals are at radius 15 from cauldron center (0, -8)
+local shelfPositions = {}
+local centerX, centerZ = 0, -8
+local radius = 15
+local startAngle, endAngle = 200, 340
+for i = 1, 6 do
+    local angle = math.rad(startAngle + (i - 1) * ((endAngle - startAngle) / 5))
+    local x = centerX + math.cos(angle) * radius
+    local z = centerZ + math.sin(angle) * radius
+    table.insert(shelfPositions, {
+        origin = Vector3.new(x, 2.0, z), dir = Vector3.new(0, 0.5, 0), count = 5
+    })
+end
 
 local function clearDisplays()
     for _, part in ipairs(displayedParts) do
