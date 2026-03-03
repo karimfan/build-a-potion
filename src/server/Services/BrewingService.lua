@@ -95,8 +95,11 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
     local isNewDiscovery = false
     if potionId ~= "sludge" then
         local sorted = {ingredientId1, ingredientId2}
+        if ingredientId3 and ingredientId3 ~= "" then
+            table.insert(sorted, ingredientId3)
+        end
         table.sort(sorted)
-        local recipeKey = sorted[1] .. "|" .. sorted[2]
+        local recipeKey = table.concat(sorted, "|")
         if not data.DiscoveredRecipes[recipeKey] then
             data.DiscoveredRecipes[recipeKey] = true
             isNewDiscovery = true
@@ -115,7 +118,8 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
         if tierData then
             duration = math.floor(duration * (1 - tierData.brewTimeReduction))
         end
-    end    if potionId == "sludge" then
+    end
+    if potionId == "sludge" then
         duration = BrewTuning.SludgeTimer
     end
 
@@ -127,6 +131,7 @@ Remotes.BrewPotion.OnServerInvoke = function(player, ingredientId1, ingredientId
         EndUnix = now + duration,
         IngredientA = ingredientId1,
         IngredientB = ingredientId2,
+        Freshness = avgFreshness,
         ResultPotionId = potionId,
         IsNewDiscovery = isNewDiscovery,
     }
@@ -201,7 +206,9 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
     end
 
     -- Stage 1: Does mutation occur?
-    local mutChance = MutationTuning.calculateChance(ingredientTiers, 0.8) -- avg freshness estimate
+    local cauldronTier = data.Upgrades and data.Upgrades.CauldronTier or 1
+    local avgFreshness = brew.Freshness or 0.8
+    local mutChance = MutationTuning.calculateChance(ingredientTiers, avgFreshness)
     -- Add cauldron upgrade mutation bonus
     if cauldronTier and cauldronTier > 1 then
         local UpgradeTuning = require(RS.Shared.Config.UpgradeTuning)
@@ -209,7 +216,8 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
         if tierData then
             mutChance = math.min(mutChance + tierData.mutationBonus, 0.20)
         end
-    end    if potionId ~= "sludge" and math.random() <= mutChance then
+    end
+    if potionId ~= "sludge" and math.random() <= mutChance then
         -- Stage 2: Which mutation?
         mutation = MutationTuning.rollMutationType()
     end
@@ -242,7 +250,7 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
     local stats = data.BrewStats
     stats.TotalBrewed = (stats.TotalBrewed or 0) + 1
     stats.TotalValueBrewed = (stats.TotalValueBrewed or 0) + sellValue
-    stats.PotionCounts[potionId] = (stats.PotionCounts[potionId] or 0) + 1
+    stats.PotionCounts[finalPotionKey] = (stats.PotionCounts[finalPotionKey] or 0) + 1
 
     -- Streak logic
     if potionId == "sludge" then
@@ -266,6 +274,7 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
         EndUnix = 0,
         IngredientA = "",
         IngredientB = "",
+        Freshness = 1.0,
         ResultPotionId = "",
         IsNewDiscovery = false,
     }
@@ -281,6 +290,7 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
     -- Global announcement for Mythic/Divine or Rainbow/Golden
     local shouldAnnounce = false
     local announceMsg = ""
+    local rarity = potion and potion.tier or "Common"
     if rarity == "Mythic" or rarity == "Divine" then
         shouldAnnounce = true
     end
@@ -315,7 +325,8 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
 
         mutation = mutation,
         mutationMultiplier = mutation and MutationTuning.Types[mutation] and MutationTuning.Types[mutation].sellMultiplier or nil,
-        finalSellValue = mutation and MutationTuning.Types[mutation] and math.floor(sellValue * MutationTuning.Types[mutation].sellMultiplier) or sellValue,        newTier = tierChanged and newTier or nil,
+        finalSellValue = mutation and MutationTuning.Types[mutation] and math.floor(sellValue * MutationTuning.Types[mutation].sellMultiplier) or sellValue,
+        newTier = tierChanged and newTier or nil,
     }
 end
 

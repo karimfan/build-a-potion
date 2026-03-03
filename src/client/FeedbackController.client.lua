@@ -96,6 +96,21 @@ end
 
 -- ========== LISTEN FOR DATA CHANGES ==========
 local prevData = nil
+local Recipes = require(RS.Shared.Config.Recipes)
+
+local function getIngredientTotal(entry)
+    if type(entry) == "number" then
+        return entry
+    end
+    if type(entry) ~= "table" or not entry.stacks then
+        return 0
+    end
+    local total = 0
+    for _, stack in ipairs(entry.stacks) do
+        total = total + (stack.amount or 0)
+    end
+    return total
+end
 
 Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(newData)
     if prevData then
@@ -109,7 +124,8 @@ Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(newData)
         end
         
         -- Detect new ingredients
-        for id, qty in pairs(newData.Ingredients) do
+        for id, entry in pairs(newData.Ingredients or {}) do
+            local qty = getIngredientTotal(entry)
             local oldQty = (prevData.Ingredients and prevData.Ingredients[id]) or 0
             if qty > oldQty then
                 local ing = Ingredients.Data[id]
@@ -119,10 +135,15 @@ Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(newData)
         end
         
         -- Detect new potions
-        for id, qty in pairs(newData.Potions) do
+        for id, qty in pairs(newData.Potions or {}) do
             local oldQty = (prevData.Potions and prevData.Potions[id]) or 0
             if qty > oldQty then
-                local potion = Potions.Data[id]
+                local baseId = id
+                local sep = id:find("__")
+                if sep then
+                    baseId = id:sub(1, sep - 1)
+                end
+                local potion = Potions.Data[baseId]
                 local name = potion and potion.name or id
                 local color = Color3.fromRGB(150, 200, 255)
                 if id == "sludge" then
@@ -133,10 +154,9 @@ Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(newData)
         end
         
         -- Detect new recipe discoveries
-        for key, _ in pairs(newData.DiscoveredRecipes) do
+        for key, _ in pairs(newData.DiscoveredRecipes or {}) do
             if not prevData.DiscoveredRecipes[key] then
                 -- Find the potion name for this recipe
-                local Recipes = require(RS.Shared.Config.Recipes)
                 local potionId = Recipes.Data[key]
                 if potionId then
                     local potion = Potions.Data[potionId]
@@ -152,7 +172,9 @@ Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(newData)
     -- Deep copy
     prevData.Coins = newData.Coins
     prevData.Ingredients = {}
-    for k, v in pairs(newData.Ingredients or {}) do prevData.Ingredients[k] = v end
+    for k, v in pairs(newData.Ingredients or {}) do
+        prevData.Ingredients[k] = getIngredientTotal(v)
+    end
     prevData.Potions = {}
     for k, v in pairs(newData.Potions or {}) do prevData.Potions[k] = v end
     prevData.DiscoveredRecipes = {}
@@ -206,10 +228,15 @@ task.spawn(function()
     prevData = Remotes.GetPlayerData:InvokeServer()
     if not prevData then
         prevData = {Coins = 0, Ingredients = {}, Potions = {}, DiscoveredRecipes = {}}
+    else
+        local normalizedIngredients = {}
+        for k, v in pairs(prevData.Ingredients or {}) do
+            normalizedIngredients[k] = getIngredientTotal(v)
+        end
+        prevData.Ingredients = normalizedIngredients
     end
 end)
 
-print(
 -- ========== GLOBAL ANNOUNCEMENTS ==========
 local announcementQueue = {}
 local isShowingAnnouncement = false
@@ -271,4 +298,4 @@ Remotes.GlobalAnnouncement.OnClientEvent:Connect(function(msg)
     showNextAnnouncement()
 end)
 
-"[FeedbackController] Initialized")
+print("[FeedbackController] Initialized")

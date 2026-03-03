@@ -29,6 +29,7 @@ local function getDefaultActiveBrew()
         Status = Types.BrewStatus.Idle,
         StartUnix = 0, EndUnix = 0,
         IngredientA = "", IngredientB = "",
+        Freshness = 1.0,
         ResultPotionId = "", IsNewDiscovery = false,
     }
 end
@@ -56,10 +57,10 @@ local function getDefaultProfile()
             BrewStations = 1,
             StorageSlots = 20,
         },
+        PotionDisplays = {},
         DailyDemandState = {
             LastSoldDateKey = "",
             SoldPotionIds = {},
-        PotionDisplays = {},
         },
     }
 end
@@ -121,9 +122,9 @@ local function migrateProfile(data)
             data.Upgrades = { CauldronTier = 1, BrewStations = 1, StorageSlots = 20 }
         end
         if not data.DailyDemandState then
-    if not data.PotionDisplays then data.PotionDisplays = {} end
             data.DailyDemandState = { LastSoldDateKey = "", SoldPotionIds = {} }
         end
+        if not data.PotionDisplays then data.PotionDisplays = {} end
         data.Version = 4
         print("[PlayerDataService] Migrated V3 → V4 (score + upgrades)")
     end
@@ -131,12 +132,14 @@ local function migrateProfile(data)
     -- Defensive: ensure all V3 fields exist
     if not data.BrewStats then data.BrewStats = getDefaultBrewStats() end
     if not data.ActiveBrew then data.ActiveBrew = getDefaultActiveBrew() end
+    if data.ActiveBrew and data.ActiveBrew.Freshness == nil then data.ActiveBrew.Freshness = 1.0 end
     if not data.BrewStats.PotionCounts then data.BrewStats.PotionCounts = {} end
     if not data.BrewStats.CurrentStreak then data.BrewStats.CurrentStreak = 0 end
     if not data.BrewStats.BestStreak then data.BrewStats.BestStreak = 0 end
     if not data.Score then data.Score = { TimePlayedMinutes = 0, TotalCoinsFromSelling = 0, BrewScoreCache = 0, MutationScoreCache = 0, CompositeScore = 0, LastLeaderboardWriteUnix = 0 } end
     if not data.Upgrades then data.Upgrades = { CauldronTier = 1, BrewStations = 1, StorageSlots = 20 } end
     if not data.DailyDemandState then data.DailyDemandState = { LastSoldDateKey = "", SoldPotionIds = {} } end
+    if not data.PotionDisplays then data.PotionDisplays = {} end
 
     return data
 end

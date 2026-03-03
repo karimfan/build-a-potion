@@ -363,8 +363,11 @@ local function refreshSellUI()
         if qty > 0 then
             hasItems = true
             order = order + 1
-            local potion = Potions.Data[potionId]
+            local baseId, mutation = Potions.parsePotionKey(potionId)
+            local potion = Potions.Data[baseId]
             if not potion then continue end
+            local displayName = mutation and (mutation .. " " .. potion.name) or potion.name
+            local unitValue = Potions.getSellValue(potionId)
             
             local item = Instance.new("Frame")
             item.Size = UDim2.new(1, 0, 0, 55)
@@ -377,7 +380,7 @@ local function refreshSellUI()
             nameLabel.Size = UDim2.new(0.4, 0, 0, 25)
             nameLabel.Position = UDim2.new(0, 10, 0, 5)
             nameLabel.BackgroundTransparency = 1
-            nameLabel.Text = potion.name .. " x" .. qty
+            nameLabel.Text = displayName .. " x" .. qty
             nameLabel.TextColor3 = Color3.new(1, 1, 1)
             nameLabel.TextScaled = true
             nameLabel.Font = Enum.Font.GothamBold
@@ -388,7 +391,7 @@ local function refreshSellUI()
             valueLabel.Size = UDim2.new(0, 100, 0, 25)
             valueLabel.Position = UDim2.new(0.4, 10, 0, 5)
             valueLabel.BackgroundTransparency = 1
-            valueLabel.Text = tostring(potion.sellValue) .. " coins"
+            valueLabel.Text = tostring(unitValue) .. " coins"
             valueLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
             valueLabel.TextScaled = true
             valueLabel.Font = Enum.Font.Gotham
