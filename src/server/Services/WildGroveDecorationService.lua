@@ -415,20 +415,30 @@ local function tuneCauldron()
     end
 end
 
-local function tuneYourShopFloor()
-    -- Floor tiles live in workspace.Zones.LegoGround, not inside YourShop
+local function tuneGlobalGround()
     local zones = Workspace:FindFirstChild("Zones")
     if not zones then return end
     local legoGround = zones:FindFirstChild("LegoGround")
     if not legoGround then return end
-
-    local brown = Color3.fromRGB(105, 72, 48)
+    local cobble = Color3.fromRGB(140, 125, 105)
     for _, d in ipairs(legoGround:GetChildren()) do
         if d:IsA("BasePart") and d.Name == "Tile" then
-            if d.Position.X >= -50 and d.Position.X <= 50 and d.Position.Z >= -50 and d.Position.Z <= 50 then
-                d.Material = Enum.Material.Brick
-                d.Color = brown
-            end
+            d.Material = Enum.Material.Cobblestone
+            d.Color = cobble
+        end
+    end
+    local gridBase = legoGround:FindFirstChild("GridBase")
+    if gridBase and gridBase:IsA("BasePart") then
+        gridBase.Material = Enum.Material.Cobblestone
+        gridBase.Color = Color3.fromRGB(50, 45, 40)
+    end
+end
+
+local function disableZoneBoundaryCollision(zone)
+    local boundaries = zone:FindFirstChild("Boundaries")
+    if boundaries then
+        for _, w in ipairs(boundaries:GetChildren()) do
+            if w:IsA("BasePart") then w.CanCollide = false end
         end
     end
 end
@@ -465,27 +475,14 @@ local function createWizardShopDecor()
     }
     local woodColor = Color3.fromRGB(65, 45, 30)
 
-    -- Restyle boundary walls to dark cobblestone
+    -- Disable boundary wall collision + restyle
+    disableZoneBoundaryCollision(yourShop)
     local boundaries = yourShop:FindFirstChild("Boundaries")
     if boundaries then
         for _, w in ipairs(boundaries:GetChildren()) do
             if w:IsA("BasePart") then
                 w.Material = Enum.Material.Cobblestone
                 w.Color = Color3.fromRGB(55, 45, 40)
-            end
-        end
-    end
-
-    -- Restyle floor tiles
-    local zones = Workspace:FindFirstChild("Zones")
-    local legoGround = zones and zones:FindFirstChild("LegoGround")
-    if legoGround then
-        for _, d in ipairs(legoGround:GetChildren()) do
-            if d:IsA("BasePart") and d.Name == "Tile" then
-                if d.Position.X >= -50 and d.Position.X <= 50 and d.Position.Z >= -50 and d.Position.Z <= 50 then
-                    d.Material = Enum.Material.Cobblestone
-                    d.Color = Color3.fromRGB(75, 60, 48)
-                end
             end
         end
     end
@@ -707,6 +704,424 @@ local function createWizardShopDecor()
     print("[WildGroveDecorationService] Wizard shop decor generated")
 end
 
+local potionColors = {
+    Color3.fromRGB(30,120,255), Color3.fromRGB(50,220,100), Color3.fromRGB(160,60,255),
+    Color3.fromRGB(255,200,50), Color3.fromRGB(255,60,60), Color3.fromRGB(255,120,200),
+    Color3.fromRGB(255,140,40), Color3.fromRGB(80,255,200), Color3.fromRGB(200,50,180),
+    Color3.fromRGB(100,255,80), Color3.fromRGB(60,180,255),
+}
+
+local function createGroveArchway(parent, pos, baseY)
+    local ac = Color3.fromRGB(95, 80, 65)
+    makePart(parent, { Name="GArchL", Size=Vector3.new(2.5, 10, 2.5), Position=Vector3.new(pos.X-4.5, baseY+5, pos.Z), Material=Enum.Material.Cobblestone, Color=ac })
+    makePart(parent, { Name="GArchR", Size=Vector3.new(2.5, 10, 2.5), Position=Vector3.new(pos.X+4.5, baseY+5, pos.Z), Material=Enum.Material.Cobblestone, Color=ac })
+    for i = 0, 8 do
+        local t = i/8; local ang = math.pi*t
+        makePart(parent, { Name="GArchC_"..i, Size=Vector3.new(2, 2, 2.5),
+            Position=Vector3.new(pos.X+math.cos(ang)*4.5, baseY+10+math.sin(ang)*3.5, pos.Z),
+            Material=Enum.Material.Cobblestone, Color=ac })
+    end
+    -- Vine/leaf drapes
+    for i = 1, 12 do
+        local side = (i <= 6) and -1 or 1
+        makePart(parent, { Name="Vine_"..i, Shape=Enum.PartType.Ball,
+            Size=Vector3.new(rng:NextNumber(1.5,3), rng:NextNumber(1.2,2.5), rng:NextNumber(1.5,3)),
+            Position=Vector3.new(pos.X+side*rng:NextNumber(2,5.5), baseY+rng:NextNumber(7,13), pos.Z+rng:NextNumber(-1.2,1.2)),
+            Material=Enum.Material.LeafyGrass, Color=Color3.fromRGB(30, 95, 45), Transparency=0.15 })
+    end
+    -- Golden glow inside
+    local glow = makePart(parent, { Name="ArchGlow", Shape=Enum.PartType.Ball, Size=Vector3.new(3,3,3),
+        Position=Vector3.new(pos.X, baseY+6, pos.Z), Material=Enum.Material.Neon, Color=Color3.fromRGB(255,220,100), Transparency=0.4 })
+    local gl = Instance.new("PointLight"); gl.Color=Color3.fromRGB(255,210,80); gl.Brightness=3; gl.Range=30; gl.Parent=glow
+    local sparkA = makePart(parent, { Name="ArchSparkA", Size=Vector3.new(5,8,2), Position=Vector3.new(pos.X, baseY+6, pos.Z), Transparency=1 })
+    local sp = Instance.new("ParticleEmitter"); sp.Rate=40; sp.Lifetime=NumberRange.new(1,3); sp.Speed=NumberRange.new(0.5,2)
+    sp.SpreadAngle=Vector2.new(30,40)
+    sp.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.1), NumberSequenceKeypoint.new(0.5,0.2), NumberSequenceKeypoint.new(1,0)})
+    sp.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.1), NumberSequenceKeypoint.new(1,1)})
+    sp.Color=ColorSequence.new(Color3.fromRGB(255,220,100), Color3.fromRGB(255,180,50))
+    sp.LightEmission=1; sp.Parent=sparkA
+    -- Rune ring on ground
+    makePart(parent, { Name="GroveRune", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.15, 12, 12),
+        CFrame=CFrame.new(pos.X, baseY+0.1, pos.Z+6)*CFrame.Angles(0,0,math.rad(90)),
+        Material=Enum.Material.Neon, Color=Color3.fromRGB(120,200,80), Transparency=0.5 })
+end
+
+local function createHangingTree(parent, pos, baseY)
+    local trunkH = rng:NextNumber(6, 10)
+    makePart(parent, { Shape=Enum.PartType.Cylinder, Size=Vector3.new(trunkH, 2.5, 2.5),
+        CFrame=CFrame.new(pos.X, baseY+trunkH/2, pos.Z)*CFrame.Angles(0,0,math.rad(90)),
+        Material=Enum.Material.Wood, Color=Color3.fromRGB(70, 48, 30) })
+    -- Canopy
+    for j = 1, 5 do
+        local cs = rng:NextNumber(4,7)
+        local isP = rng:NextNumber() < 0.35
+        makePart(parent, { Shape=Enum.PartType.Ball,
+            Size=Vector3.new(cs, cs*0.8, cs),
+            Position=pos+Vector3.new(rng:NextNumber(-3,3), trunkH+rng:NextNumber(-1,3), rng:NextNumber(-3,3)),
+            Material=Enum.Material.LeafyGrass, Color=isP and Color3.fromRGB(80,40,120) or Color3.fromRGB(28,80,45), Transparency=0.12 })
+    end
+    -- Hanging items (bottles + lanterns)
+    for h = 1, rng:NextInteger(3, 5) do
+        local hx = pos.X + rng:NextNumber(-3.5, 3.5)
+        local hz = pos.Z + rng:NextNumber(-3.5, 3.5)
+        local chainLen = rng:NextNumber(2, 5)
+        local hangY = baseY + trunkH + rng:NextNumber(-2, 1)
+        makePart(parent, { Name="Chain", Size=Vector3.new(0.08, chainLen, 0.08),
+            Position=Vector3.new(hx, hangY-chainLen/2, hz), Material=Enum.Material.Metal, Color=Color3.fromRGB(80,75,90) })
+        if rng:NextNumber() < 0.5 then
+            -- Hanging potion bottle
+            local color = potionColors[rng:NextInteger(1, #potionColors)]
+            local b = makePart(parent, { Name="HangBottle", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.8, 0.45, 0.45),
+                CFrame=CFrame.new(hx, hangY-chainLen-0.4, hz)*CFrame.Angles(0,0,math.rad(90)),
+                Material=Enum.Material.Glass, Color=color, Transparency=0.15 })
+            local bl = Instance.new("PointLight"); bl.Color=color; bl.Brightness=0.6; bl.Range=6; bl.Parent=b
+        else
+            -- Hanging lantern
+            local lantern = makePart(parent, { Name="Lantern", Shape=Enum.PartType.Ball, Size=Vector3.new(0.6,0.6,0.6),
+                Position=Vector3.new(hx, hangY-chainLen-0.3, hz),
+                Material=Enum.Material.Neon, Color=Color3.fromRGB(255,185,70) })
+            local ll = Instance.new("PointLight"); ll.Color=Color3.fromRGB(255,180,60); ll.Brightness=1; ll.Range=12; ll.Parent=lantern
+        end
+    end
+end
+
+local function createCrateCluster(parent, pos, baseY)
+    -- 2-3 stacked crates + barrel
+    for c = 1, rng:NextInteger(2, 3) do
+        local cx = pos.X + rng:NextNumber(-1.5, 1.5)
+        local cz = pos.Z + rng:NextNumber(-1.5, 1.5)
+        local s = rng:NextNumber(1.8, 2.8)
+        makePart(parent, { Name="Crate", Size=Vector3.new(s, s, s),
+            Position=Vector3.new(cx, baseY+s/2, cz), Material=Enum.Material.WoodPlanks, Color=Color3.fromRGB(90, 65, 40) })
+        -- Bottle on top
+        local color = potionColors[rng:NextInteger(1, #potionColors)]
+        local bh = rng:NextNumber(0.5, 1.0)
+        makePart(parent, { Name="CrateBottle", Shape=Enum.PartType.Cylinder, Size=Vector3.new(bh, 0.35, 0.35),
+            CFrame=CFrame.new(cx+rng:NextNumber(-0.4,0.4), baseY+s+bh/2+0.05, cz+rng:NextNumber(-0.4,0.4))*CFrame.Angles(0,0,math.rad(90)),
+            Material=Enum.Material.Glass, Color=color, Transparency=0.2 })
+    end
+    -- Barrel
+    local bx = pos.X + rng:NextNumber(-2, 2)
+    local bz = pos.Z + rng:NextNumber(-2, 2)
+    makePart(parent, { Name="Barrel", Shape=Enum.PartType.Cylinder, Size=Vector3.new(2.5, 1.8, 1.8),
+        CFrame=CFrame.new(bx, baseY+1.25, bz)*CFrame.Angles(0,0,math.rad(90)),
+        Material=Enum.Material.WoodPlanks, Color=Color3.fromRGB(80, 55, 35) })
+    -- Book stack on a crate
+    if rng:NextNumber() < 0.5 then
+        makePart(parent, { Name="BookStack", Size=Vector3.new(1.2, 0.5, 0.9),
+            Position=Vector3.new(pos.X+rng:NextNumber(-1,1), baseY+2.8+rng:NextNumber(0,0.5), pos.Z+rng:NextNumber(-1,1)),
+            Material=Enum.Material.SmoothPlastic, Color=Color3.fromRGB(100, 70, 140) })
+    end
+end
+
+local function createMushroom(parent, pos, baseY, isGlowing)
+    local stemH = rng:NextNumber(4, 10)
+    local stemW = rng:NextNumber(1.5, 3)
+    local capR = rng:NextNumber(5, 12)
+    if isGlowing then
+        makePart(parent, { Name="GlowStem", Shape=Enum.PartType.Cylinder, Size=Vector3.new(stemH, stemW, stemW),
+            CFrame=CFrame.new(pos.X, baseY+stemH/2, pos.Z)*CFrame.Angles(0,0,math.rad(90)),
+            Material=Enum.Material.Neon, Color=Color3.fromRGB(60, 140, 255) })
+        local cap = makePart(parent, { Name="GlowCap", Shape=Enum.PartType.Ball, Size=Vector3.new(capR, capR*0.5, capR),
+            Position=Vector3.new(pos.X, baseY+stemH+capR*0.15, pos.Z),
+            Material=Enum.Material.Neon, Color=Color3.fromRGB(80, 180, 255) })
+        local ml = Instance.new("PointLight"); ml.Color=Color3.fromRGB(80,170,255); ml.Brightness=2.5; ml.Range=25; ml.Parent=cap
+    else
+        makePart(parent, { Name="RedStem", Shape=Enum.PartType.Cylinder, Size=Vector3.new(stemH, stemW, stemW),
+            CFrame=CFrame.new(pos.X, baseY+stemH/2, pos.Z)*CFrame.Angles(0,0,math.rad(90)),
+            Material=Enum.Material.SmoothPlastic, Color=Color3.fromRGB(220, 200, 170) })
+        makePart(parent, { Name="RedCap", Shape=Enum.PartType.Ball, Size=Vector3.new(capR, capR*0.4, capR),
+            Position=Vector3.new(pos.X, baseY+stemH+capR*0.1, pos.Z),
+            Material=Enum.Material.SmoothPlastic, Color=Color3.fromRGB(200, 40, 40) })
+        -- White spots
+        for s = 1, 5 do
+            makePart(parent, { Name="Spot", Shape=Enum.PartType.Ball, Size=Vector3.new(1.2, 0.6, 1.2),
+                Position=Vector3.new(pos.X+rng:NextNumber(-capR*0.3, capR*0.3), baseY+stemH+capR*0.25, pos.Z+rng:NextNumber(-capR*0.3, capR*0.3)),
+                Material=Enum.Material.SmoothPlastic, Color=Color3.fromRGB(240, 240, 240) })
+        end
+    end
+end
+
+local function createSmallCauldron(parent, pos, baseY)
+    makePart(parent, { Name="MiniCauldron", Shape=Enum.PartType.Cylinder, Size=Vector3.new(2, 2.5, 2.5),
+        CFrame=CFrame.new(pos.X, baseY+1, pos.Z)*CFrame.Angles(0,0,math.rad(90)),
+        Material=Enum.Material.Metal, Color=Color3.fromRGB(50, 45, 40) })
+    local liquid = makePart(parent, { Name="MiniLiquid", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.15, 2, 2),
+        CFrame=CFrame.new(pos.X, baseY+1.8, pos.Z)*CFrame.Angles(0,0,math.rad(90)),
+        Material=Enum.Material.Neon, Color=Color3.fromRGB(80, 50, 220), Transparency=0.1 })
+    local cl = Instance.new("PointLight"); cl.Color=Color3.fromRGB(100,60,255); cl.Brightness=1.5; cl.Range=10; cl.Parent=liquid
+    -- Bubbles
+    local bubA = makePart(parent, { Name="BubAnchor", Size=Vector3.new(1.5,0.5,1.5), Position=Vector3.new(pos.X, baseY+2, pos.Z), Transparency=1 })
+    local bub = Instance.new("ParticleEmitter"); bub.Rate=8; bub.Lifetime=NumberRange.new(1,2.5); bub.Speed=NumberRange.new(0.5,1.5)
+    bub.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.1), NumberSequenceKeypoint.new(0.5,0.2), NumberSequenceKeypoint.new(1,0)})
+    bub.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.2), NumberSequenceKeypoint.new(1,1)})
+    bub.Color=ColorSequence.new(Color3.fromRGB(120,80,255)); bub.LightEmission=1; bub.Parent=bubA
+end
+
+local function createGroveCandle(parent, pos, baseY)
+    local h = rng:NextNumber(4, 8)
+    local w = rng:NextNumber(1.5, 2.5)
+    makePart(parent, { Name="GCandle", Shape=Enum.PartType.Cylinder, Size=Vector3.new(h, w, w),
+        CFrame=CFrame.new(pos.X, baseY+h/2, pos.Z)*CFrame.Angles(0,0,math.rad(90)),
+        Material=Enum.Material.SmoothPlastic, Color=Color3.fromRGB(225,210,175) })
+    local flame = makePart(parent, { Name="GFlame", Shape=Enum.PartType.Ball, Size=Vector3.new(1.5, 2.2, 1.5),
+        Position=Vector3.new(pos.X, baseY+h+1, pos.Z), Material=Enum.Material.Neon, Color=Color3.fromRGB(255,185,80) })
+    local fl = Instance.new("PointLight"); fl.Color=Color3.fromRGB(255,180,70); fl.Brightness=2; fl.Range=22; fl.Parent=flame
+end
+
+local function createMarketStall(parent, pos, baseY, awningColor1, awningColor2, facingAngle)
+    local rot = facingAngle or 0
+    -- Posts
+    for _, ox in ipairs({-3, 3}) do
+        for _, oz in ipairs({-1.5, 1.5}) do
+            makePart(parent, { Name="StallPost", Size=Vector3.new(0.5, 5, 0.5),
+                Position=Vector3.new(pos.X+ox, baseY+2.5, pos.Z+oz),
+                Material=Enum.Material.Wood, Color=Color3.fromRGB(80, 55, 35) })
+        end
+    end
+    -- Counter
+    makePart(parent, { Name="StallCounter", Size=Vector3.new(7, 0.4, 3.5),
+        Position=Vector3.new(pos.X, baseY+2, pos.Z),
+        Material=Enum.Material.WoodPlanks, Color=Color3.fromRGB(90, 65, 42) })
+    -- Striped awning (alternating colors)
+    for s = 0, 5 do
+        local color = (s % 2 == 0) and awningColor1 or awningColor2
+        makePart(parent, { Name="Awning_"..s, Size=Vector3.new(1.15, 0.15, 4.5),
+            Position=Vector3.new(pos.X - 3 + s * 1.2, baseY+5.2, pos.Z),
+            Material=Enum.Material.Fabric, Color=color })
+    end
+    -- Bottles on counter
+    local bottleColors = {Color3.fromRGB(30,120,255), Color3.fromRGB(50,220,100), Color3.fromRGB(160,60,255), Color3.fromRGB(255,200,50), Color3.fromRGB(255,60,60), Color3.fromRGB(255,140,40)}
+    for b = 1, 5 do
+        local color = bottleColors[rng:NextInteger(1, #bottleColors)]
+        local h = rng:NextNumber(0.6, 1.2)
+        local bx = pos.X - 2 + (b-1) * 1.1 + rng:NextNumber(-0.2, 0.2)
+        local bottle = makePart(parent, { Name="StallBottle", Shape=Enum.PartType.Cylinder, Size=Vector3.new(h, 0.4, 0.4),
+            CFrame=CFrame.new(bx, baseY+2.2+h/2, pos.Z+rng:NextNumber(-0.8, 0.8))*CFrame.Angles(0,0,math.rad(90)),
+            Material=Enum.Material.Glass, Color=color, Transparency=0.15 })
+        if rng:NextNumber() < 0.4 then
+            local gl = Instance.new("PointLight"); gl.Color=color; gl.Brightness=0.5; gl.Range=4; gl.Parent=bottle
+        end
+    end
+end
+
+local function createIngredientMarketDecor()
+    local zones = Workspace:FindFirstChild("Zones")
+    if not zones then return end
+    local market = zones:FindFirstChild("IngredientMarket")
+    if not market then return end
+
+    disableZoneBoundaryCollision(market)
+
+    local existing = market:FindFirstChild("MarketDecor")
+    if existing then existing:Destroy() end
+    local decor = Instance.new("Folder"); decor.Name="MarketDecor"; decor.Parent=market
+
+    local cx, cz = 0, -130
+    local baseY = 0
+
+    -- Market stalls with striped awnings around the plaza
+    createMarketStall(decor, Vector3.new(cx-18, 0, cz-15), baseY, Color3.fromRGB(180,40,40), Color3.fromRGB(240,230,210), 0)
+    createMarketStall(decor, Vector3.new(cx+18, 0, cz-15), baseY, Color3.fromRGB(40,60,160), Color3.fromRGB(240,230,210), 0)
+    createMarketStall(decor, Vector3.new(cx-18, 0, cz+15), baseY, Color3.fromRGB(160,40,40), Color3.fromRGB(240,230,210), 0)
+    createMarketStall(decor, Vector3.new(cx+18, 0, cz+15), baseY, Color3.fromRGB(40,120,60), Color3.fromRGB(240,230,210), 0)
+
+    -- Central rune circle
+    makePart(decor, { Name="MarketRune", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.15, 14, 14),
+        CFrame=CFrame.new(cx, baseY+0.1, cz)*CFrame.Angles(0,0,math.rad(90)),
+        Material=Enum.Material.Neon, Color=Color3.fromRGB(80,200,220), Transparency=0.45 })
+    local runeGlow = makePart(decor, { Name="MarketRuneGlow", Shape=Enum.PartType.Ball, Size=Vector3.new(2,2,2),
+        Position=Vector3.new(cx, baseY+1.5, cz), Material=Enum.Material.Neon, Color=Color3.fromRGB(80,220,255), Transparency=0.4 })
+    local rgl = Instance.new("PointLight"); rgl.Color=Color3.fromRGB(80,200,240); rgl.Brightness=2; rgl.Range=20; rgl.Parent=runeGlow
+
+    -- Fountain particles (enhance existing)
+    local fountain = market:FindFirstChild("Fountain")
+    if fountain then
+        local fAnchor = makePart(decor, { Name="FountainSparkle", Size=Vector3.new(3,2,3),
+            Position=Vector3.new(cx, baseY+4, cz), Transparency=1 })
+        local fp = Instance.new("ParticleEmitter"); fp.Rate=30; fp.Lifetime=NumberRange.new(1,3)
+        fp.Speed=NumberRange.new(1,3); fp.SpreadAngle=Vector2.new(20,20)
+        fp.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.1), NumberSequenceKeypoint.new(0.5,0.2), NumberSequenceKeypoint.new(1,0)})
+        fp.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.1), NumberSequenceKeypoint.new(1,1)})
+        fp.Color=ColorSequence.new(Color3.fromRGB(80,200,255), Color3.fromRGB(180,220,255))
+        fp.LightEmission=1; fp.Parent=fAnchor
+    end
+
+    -- Crystals (10 large)
+    local crystalColors = {Color3.fromRGB(150,80,255), Color3.fromRGB(80,150,255), Color3.fromRGB(180,60,220)}
+    for i = 1, 10 do
+        local a = (i/10)*math.pi*2
+        local r = rng:NextNumber(20, 40)
+        local h = rng:NextNumber(2, 5)
+        local color = crystalColors[rng:NextInteger(1, #crystalColors)]
+        local crystal = makePart(decor, { Name="MarketCrystal_"..i,
+            Size=Vector3.new(rng:NextNumber(0.8,1.5), h, rng:NextNumber(0.8,1.5)),
+            Position=Vector3.new(cx+math.cos(a)*r, baseY+h/2, cz+math.sin(a)*r),
+            Material=Enum.Material.Neon, Color=color,
+            Orientation=Vector3.new(rng:NextNumber(-15,15), rng:NextNumber(0,360), rng:NextNumber(-15,15)) })
+        local cl = Instance.new("PointLight"); cl.Color=color; cl.Brightness=1.5; cl.Range=12; cl.Parent=crystal
+    end
+
+    -- Ground potion bottles (20)
+    for i = 1, 20 do
+        local a = rng:NextNumber(0, math.pi*2)
+        local d = rng:NextNumber(8, 35)
+        local color = crystalColors[rng:NextInteger(1, #crystalColors)]
+        local h = rng:NextNumber(0.5, 1.2)
+        makePart(decor, { Name="MarketBottle_"..i, Shape=Enum.PartType.Cylinder, Size=Vector3.new(h, 0.4, 0.4),
+            CFrame=CFrame.new(cx+math.cos(a)*d, baseY+h/2+0.05, cz+math.sin(a)*d)*CFrame.Angles(0,0,math.rad(90)),
+            Material=Enum.Material.Glass, Color=color, Transparency=0.15 })
+    end
+
+    -- Big candles (10)
+    for i = 1, 10 do
+        local a = rng:NextNumber(0, math.pi*2)
+        local r = rng:NextNumber(10, 38)
+        local h = rng:NextNumber(3, 6)
+        makePart(decor, { Name="MCandle_"..i, Shape=Enum.PartType.Cylinder, Size=Vector3.new(h, 1.5, 1.5),
+            CFrame=CFrame.new(cx+math.cos(a)*r, baseY+h/2, cz+math.sin(a)*r)*CFrame.Angles(0,0,math.rad(90)),
+            Material=Enum.Material.SmoothPlastic, Color=Color3.fromRGB(225,210,175) })
+        local flame = makePart(decor, { Name="MFlame_"..i, Shape=Enum.PartType.Ball, Size=Vector3.new(1.2, 1.8, 1.2),
+            Position=Vector3.new(cx+math.cos(a)*r, baseY+h+0.8, cz+math.sin(a)*r),
+            Material=Enum.Material.Neon, Color=Color3.fromRGB(255,185,80) })
+        local fl = Instance.new("PointLight"); fl.Color=Color3.fromRGB(255,180,70); fl.Brightness=1.5; fl.Range=16; fl.Parent=flame
+    end
+
+    -- Small wizard tower accent
+    makePart(decor, { Name="Tower", Shape=Enum.PartType.Cylinder, Size=Vector3.new(10, 5, 5),
+        CFrame=CFrame.new(cx-35, baseY+5, cz-35)*CFrame.Angles(0,0,math.rad(90)),
+        Material=Enum.Material.Cobblestone, Color=Color3.fromRGB(80, 70, 60) })
+    makePart(decor, { Name="TowerRoof", Shape=Enum.PartType.Ball, Size=Vector3.new(6, 5, 6),
+        Position=Vector3.new(cx-35, baseY+11, cz-35),
+        Material=Enum.Material.SmoothPlastic, Color=Color3.fromRGB(90, 50, 130) })
+    local towerLight = makePart(decor, { Name="TowerGlow", Shape=Enum.PartType.Ball, Size=Vector3.new(1, 1, 1),
+        Position=Vector3.new(cx-35, baseY+14, cz-35), Material=Enum.Material.Neon, Color=Color3.fromRGB(100,180,255) })
+    local tl = Instance.new("PointLight"); tl.Color=Color3.fromRGB(100,180,255); tl.Brightness=2; tl.Range=25; tl.Parent=towerLight
+
+    print("[WildGroveDecorationService] Ingredient market decor generated")
+end
+
+local function createTradingPostDecor()
+    local zones = Workspace:FindFirstChild("Zones")
+    if not zones then return end
+    local post = zones:FindFirstChild("TradingPost")
+    if not post then return end
+
+    disableZoneBoundaryCollision(post)
+
+    local existing = post:FindFirstChild("TradeDecor")
+    if existing then existing:Destroy() end
+    local decor = Instance.new("Folder"); decor.Name="TradeDecor"; decor.Parent=post
+
+    local cx, cz = 130, 0
+    local baseY = 0
+
+    -- Central rune circle
+    makePart(decor, { Name="TradeRune", Shape=Enum.PartType.Cylinder, Size=Vector3.new(0.15, 16, 16),
+        CFrame=CFrame.new(cx, baseY+0.1, cz)*CFrame.Angles(0,0,math.rad(90)),
+        Material=Enum.Material.Neon, Color=Color3.fromRGB(220,180,60), Transparency=0.45 })
+    local runeGlow = makePart(decor, { Name="TradeRuneGlow", Shape=Enum.PartType.Ball, Size=Vector3.new(2.5,2.5,2.5),
+        Position=Vector3.new(cx, baseY+2, cz), Material=Enum.Material.Neon, Color=Color3.fromRGB(255,220,80), Transparency=0.35 })
+    local rgl = Instance.new("PointLight"); rgl.Color=Color3.fromRGB(255,210,60); rgl.Brightness=2.5; rgl.Range=22; rgl.Parent=runeGlow
+
+    -- Stone pillars at corners
+    local pillarPositions = {
+        Vector3.new(cx-35, 0, cz-35), Vector3.new(cx+35, 0, cz-35),
+        Vector3.new(cx-35, 0, cz+35), Vector3.new(cx+35, 0, cz+35),
+    }
+    for i, pp in ipairs(pillarPositions) do
+        makePart(decor, { Name="Pillar_"..i, Shape=Enum.PartType.Cylinder, Size=Vector3.new(10, 3, 3),
+            CFrame=CFrame.new(pp.X, baseY+5, pp.Z)*CFrame.Angles(0,0,math.rad(90)),
+            Material=Enum.Material.Cobblestone, Color=Color3.fromRGB(85, 75, 65) })
+        local cap = makePart(decor, { Name="PillarCap_"..i, Shape=Enum.PartType.Ball, Size=Vector3.new(1.2, 1.2, 1.2),
+            Position=Vector3.new(pp.X, baseY+10.5, pp.Z), Material=Enum.Material.Neon, Color=Color3.fromRGB(255,200,60) })
+        local pl = Instance.new("PointLight"); pl.Color=Color3.fromRGB(255,200,60); pl.Brightness=1.5; pl.Range=15; pl.Parent=cap
+    end
+
+    -- Display shelves behind sell counter
+    for s = 1, 3 do
+        local sz = cz - 5 - s * 4
+        makePart(decor, { Name="DisplayShelf_"..s, Size=Vector3.new(10, 0.3, 2.5),
+            Position=Vector3.new(cx, baseY + s * 2, sz),
+            Material=Enum.Material.WoodPlanks, Color=Color3.fromRGB(75, 52, 35) })
+        -- Gold/treasure items on shelf
+        for g = 1, 4 do
+            local gx = cx - 3.5 + (g-1) * 2.5 + rng:NextNumber(-0.3, 0.3)
+            makePart(decor, { Name="TreasureItem", Shape=Enum.PartType.Ball, Size=Vector3.new(0.8, 0.8, 0.8),
+                Position=Vector3.new(gx, baseY + s*2 + 0.55, sz),
+                Material=Enum.Material.Neon, Color=Color3.fromRGB(255, 210, 50+rng:NextInteger(0,50)), Transparency=0.1 })
+        end
+    end
+
+    -- Crystals (8)
+    for i = 1, 8 do
+        local a = (i/8)*math.pi*2
+        local r = rng:NextNumber(18, 38)
+        local h = rng:NextNumber(2, 4.5)
+        local color = (i%2==0) and Color3.fromRGB(150,80,255) or Color3.fromRGB(255,200,60)
+        local crystal = makePart(decor, { Name="TradeCrystal_"..i,
+            Size=Vector3.new(rng:NextNumber(0.8,1.4), h, rng:NextNumber(0.8,1.4)),
+            Position=Vector3.new(cx+math.cos(a)*r, baseY+h/2, cz+math.sin(a)*r),
+            Material=Enum.Material.Neon, Color=color,
+            Orientation=Vector3.new(rng:NextNumber(-15,15), rng:NextNumber(0,360), rng:NextNumber(-15,15)) })
+        local cl = Instance.new("PointLight"); cl.Color=color; cl.Brightness=1.5; cl.Range=12; cl.Parent=crystal
+    end
+
+    -- Candles on desks and benches (8 big)
+    local candleSpots = {
+        Vector3.new(115, 3, 25), Vector3.new(145, 3, 25),
+        Vector3.new(115, 3, -20), Vector3.new(145, 3, -20),
+        Vector3.new(120, 1.5, -38), Vector3.new(135, 1.5, -38), Vector3.new(145, 1.5, -38),
+        Vector3.new(cx, 0, cz+30),
+    }
+    for i, spot in ipairs(candleSpots) do
+        local h = rng:NextNumber(2, 4)
+        makePart(decor, { Name="TCandle_"..i, Shape=Enum.PartType.Cylinder, Size=Vector3.new(h, 1, 1),
+            CFrame=CFrame.new(spot.X, spot.Y+h/2, spot.Z)*CFrame.Angles(0,0,math.rad(90)),
+            Material=Enum.Material.SmoothPlastic, Color=Color3.fromRGB(225,210,175) })
+        local flame = makePart(decor, { Name="TFlame_"..i, Shape=Enum.PartType.Ball, Size=Vector3.new(0.8, 1.2, 0.8),
+            Position=Vector3.new(spot.X, spot.Y+h+0.5, spot.Z),
+            Material=Enum.Material.Neon, Color=Color3.fromRGB(255,185,80) })
+        local fl = Instance.new("PointLight"); fl.Color=Color3.fromRGB(255,180,70); fl.Brightness=1.2; fl.Range=14; fl.Parent=flame
+    end
+
+    -- Gold ambient particles near sell counter
+    local goldAnchor = makePart(decor, { Name="GoldParticleAnchor", Size=Vector3.new(6,3,6),
+        Position=Vector3.new(cx, baseY+3, cz-5), Transparency=1 })
+    local gp = Instance.new("ParticleEmitter"); gp.Rate=15; gp.Lifetime=NumberRange.new(2,4)
+    gp.Speed=NumberRange.new(0.3,1); gp.SpreadAngle=Vector2.new(60,60)
+    gp.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.08), NumberSequenceKeypoint.new(0.5,0.15), NumberSequenceKeypoint.new(1,0)})
+    gp.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.2), NumberSequenceKeypoint.new(1,1)})
+    gp.Color=ColorSequence.new(Color3.fromRGB(255,215,50), Color3.fromRGB(255,180,30))
+    gp.LightEmission=1; gp.Parent=goldAnchor
+
+    print("[WildGroveDecorationService] Trading post decor generated")
+end
+
+local function disableAllCollision()
+    -- Remove collision from everything except ground tiles so the world is fully traversable
+    local zones = Workspace:FindFirstChild("Zones")
+    if zones then
+        for _, zone in ipairs(zones:GetChildren()) do
+            if zone:IsA("Model") or zone:IsA("Folder") then
+                for _, d in ipairs(zone:GetDescendants()) do
+                    if d:IsA("BasePart") and d.CanCollide == true then
+                        if d.Name ~= "Tile" and d.Name ~= "GridBase" and d.Name ~= "SpawnPoint" then
+                            d.CanCollide = false
+                        end
+                    end
+                end
+            end
+        end
+    end
+    -- World walls at workspace root
+    for _, c in ipairs(Workspace:GetChildren()) do
+        if c:IsA("BasePart") and c.Name:find("Wall") then
+            c.CanCollide = false
+        end
+    end
+end
+
 local function buildMysticalGrove()
     local grove = findWildGrove()
     if not grove then
@@ -715,9 +1130,7 @@ local function buildMysticalGrove()
     end
 
     local existing = grove:FindFirstChild(DECOR_FOLDER_NAME)
-    if existing then
-        existing:Destroy()
-    end
+    if existing then existing:Destroy() end
 
     local decor = Instance.new("Folder")
     decor.Name = DECOR_FOLDER_NAME
@@ -727,10 +1140,6 @@ local function buildMysticalGrove()
     local nodePoints = collectForageNodes(grove)
     local center = grove:GetPivot().Position
     center = Vector3.new(center.X, floorY, center.Z)
-
-    createAncientTree(decor, center + Vector3.new(0, 0, -12), floorY)
-    createAmbientMotes(decor, center, floorY)
-    createMoonlightBeacon(decor, center, floorY)
 
     local function placeMany(count, minR, maxR, radiusCheck, placeFn, maxAttempts)
         local placed = 0
@@ -746,29 +1155,108 @@ local function buildMysticalGrove()
         end
     end
 
-    placeMany(26, 22, 82, SAFE_NODE_RADIUS + 2, createTree)
-    placeMany(58, 8, 84, SAFE_NODE_RADIUS, createShrub)
-    placeMany(22, 14, 80, SAFE_NODE_RADIUS + 3, createCrystalCluster)
-    placeMany(34, 10, 82, SAFE_NODE_RADIUS + 2, createRuneStone)
-    createArcaneRuins(decor, center, floorY, nodePoints)
-    createFloatingArcaneStones(decor, center, floorY, nodePoints)
+    -- Central ancient tree + archway + moonlight
+    createAncientTree(decor, center + Vector3.new(0, 0, -12), floorY)
+    createGroveArchway(decor, center, floorY)
+    createAmbientMotes(decor, center, floorY)
+    createMoonlightBeacon(decor, center, floorY)
 
+    -- Hanging trees with bottles/lanterns (20)
+    placeMany(20, 18, 78, SAFE_NODE_RADIUS + 3, createHangingTree)
+
+    -- Dense vegetation: shrubs (80+), flowers
+    placeMany(80, 6, 85, SAFE_NODE_RADIUS - 2, createShrub)
+    -- Purple flowers
+    placeMany(35, 5, 82, 3, function(par, pos, by)
+        makePart(par, { Name="PurpleFlower", Shape=Enum.PartType.Ball,
+            Size=Vector3.new(rng:NextNumber(0.6,1.2), rng:NextNumber(0.4,0.8), rng:NextNumber(0.6,1.2)),
+            Position=Vector3.new(pos.X, by+rng:NextNumber(0.2,0.5), pos.Z),
+            Material=Enum.Material.Neon, Color=Color3.fromRGB(140,50,200), Transparency=0.2 })
+    end)
+    -- Yellow flowers
+    placeMany(25, 5, 80, 3, function(par, pos, by)
+        makePart(par, { Name="YellowFlower", Shape=Enum.PartType.Ball,
+            Size=Vector3.new(rng:NextNumber(0.4,0.8), rng:NextNumber(0.3,0.5), rng:NextNumber(0.4,0.8)),
+            Position=Vector3.new(pos.X, by+rng:NextNumber(0.2,0.4), pos.Z),
+            Material=Enum.Material.Neon, Color=Color3.fromRGB(255,220,50), Transparency=0.15 })
+    end)
+
+    -- Cobblestone paths (radiating from center)
+    for i = 1, 18 do
+        local a = (i/18)*math.pi*2
+        local dist = rng:NextNumber(4, 30)
+        local pw = rng:NextNumber(3, 5)
+        local pl = rng:NextNumber(4, 8)
+        makePart(decor, { Name="Path_"..i, Size=Vector3.new(pw, 0.2, pl),
+            Position=Vector3.new(center.X+math.cos(a)*dist, floorY+0.12, center.Z+math.sin(a)*dist),
+            Material=Enum.Material.Cobblestone, Color=Color3.fromRGB(85,70,55),
+            Orientation=Vector3.new(0, math.deg(a)+rng:NextNumber(-15,15), 0) })
+    end
+
+    -- Crate & barrel clusters (8)
+    placeMany(8, 12, 70, SAFE_NODE_RADIUS + 2, createCrateCluster)
+
+    -- Crystal clusters (40)
+    placeMany(40, 10, 82, SAFE_NODE_RADIUS + 2, createCrystalCluster)
+
+    -- Mushrooms: red (15) + blue glowing (12)
+    placeMany(6, 12, 75, SAFE_NODE_RADIUS + 4, function(par, pos, by) createMushroom(par, pos, by, false) end)
+    placeMany(4, 12, 75, SAFE_NODE_RADIUS + 4, function(par, pos, by) createMushroom(par, pos, by, true) end)
+
+    -- Small cauldrons (5)
+    placeMany(5, 15, 65, SAFE_NODE_RADIUS + 4, createSmallCauldron)
+
+    -- Ground candles (45)
+    placeMany(15, 8, 80, SAFE_NODE_RADIUS + 2, createGroveCandle)
+
+    -- Floor potion bottles (30 scattered)
+    for i = 1, 30 do
+        local a = rng:NextNumber(0, math.pi*2)
+        local d = rng:NextNumber(8, 70)
+        local px = center.X + math.cos(a)*d
+        local pz = center.Z + math.sin(a)*d
+        local color = potionColors[rng:NextInteger(1, #potionColors)]
+        local h = rng:NextNumber(0.5, 1.1)
+        local bottle = makePart(decor, { Name="GroveBottle_"..i, Shape=Enum.PartType.Cylinder, Size=Vector3.new(h, 0.4, 0.4),
+            CFrame=CFrame.new(px, floorY+h/2+0.05, pz)*CFrame.Angles(0,0,math.rad(90)),
+            Material=Enum.Material.Glass, Color=color, Transparency=0.15 })
+        if rng:NextNumber() < 0.3 then
+            local gl = Instance.new("PointLight"); gl.Color=color; gl.Brightness=0.5; gl.Range=5; gl.Parent=bottle
+        end
+    end
+
+    -- Rune stones (20)
+    placeMany(20, 10, 80, SAFE_NODE_RADIUS + 2, createRuneStone)
+
+    -- Green forest fog
+    local fogAnchor = makePart(decor, { Name="ForestFog", Size=Vector3.new(2,2,2), Position=Vector3.new(center.X, floorY+1.5, center.Z), Transparency=1 })
+    local fog = Instance.new("ParticleEmitter"); fog.Rate=40; fog.Lifetime=NumberRange.new(6,12)
+    fog.Speed=NumberRange.new(0.1,0.5); fog.SpreadAngle=Vector2.new(180,180)
+    fog.Size=NumberSequence.new({NumberSequenceKeypoint.new(0,0.5), NumberSequenceKeypoint.new(0.5,2.5), NumberSequenceKeypoint.new(1,0)})
+    fog.Transparency=NumberSequence.new({NumberSequenceKeypoint.new(0,0.6), NumberSequenceKeypoint.new(0.7,0.75), NumberSequenceKeypoint.new(1,1)})
+    fog.Color=ColorSequence.new(Color3.fromRGB(40,100,50), Color3.fromRGB(30,80,60))
+    fog.LightEmission=0.2; fog.Parent=fogAnchor
+
+    -- ForageNode light enhancement
     for _, inst in ipairs(grove:GetDescendants()) do
         if inst:IsA("BasePart") and inst.Name:match("ForageNode") then
             if not inst:FindFirstChild("MysticNodeLight") then
                 local light = Instance.new("PointLight")
                 light.Name = "MysticNodeLight"
-                light.Color = Color3.fromRGB(125, 150, 255)
-                light.Brightness = 1.8
-                light.Range = 12
+                light.Color = Color3.fromRGB(100, 220, 120)
+                light.Brightness = 2
+                light.Range = 14
                 light.Parent = inst
             end
         end
     end
 
-    tuneYourShopFloor()
+    tuneGlobalGround()
     createWizardShopDecor()
     tuneCauldron()
+    createIngredientMarketDecor()
+    createTradingPostDecor()
+    disableAllCollision()
     print("[WildGroveDecorationService] Mystical decor generated")
 end
 

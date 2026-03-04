@@ -88,14 +88,17 @@ local function refreshCauldronIngredients()
     if not data then return end
     local grid = cauldronGui.MainFrame.IngredientGrid
     for _, child in ipairs(grid:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
+        if child:IsA("TextButton") or child:IsA("TextLabel") then child:Destroy() end
     end
+
+    -- Collect owned ingredients with quantities
+    local owned = {}
+    local ownedIds = {}
     local order = 0
     for ingredientId, entry in pairs(data.Ingredients) do
-        -- V3: compute total quantity from stacks
         local qty = 0
         if type(entry) == "number" then
-            qty = entry -- V2 fallback
+            qty = entry
         elseif type(entry) == "table" and entry.stacks then
             for _, stack in ipairs(entry.stacks) do
                 qty = qty + (stack.amount or 0)
@@ -105,17 +108,24 @@ local function refreshCauldronIngredients()
             local ing = Ingredients.Data[ingredientId]
             if ing then
                 order = order + 1
+                owned[ingredientId] = qty
+                table.insert(ownedIds, ingredientId)
                 local btn = Instance.new("TextButton")
                 btn.Name = "Ing_" .. ingredientId
-                btn.Size = UDim2.new(0, 125, 0, 50)
+                btn.Size = UDim2.new(1, -10, 0, 36)
                 btn.BackgroundColor3 = Color3.fromRGB(55, 50, 60)
-                btn.Text = ing.name .. " x" .. qty
+                btn.Text = ing.name .. "  x" .. qty
                 btn.TextColor3 = Color3.new(1, 1, 1)
                 btn.TextScaled = true
                 btn.Font = Enum.Font.Gotham
+                btn.TextXAlignment = Enum.TextXAlignment.Left
                 btn.LayoutOrder = order
                 btn.Parent = grid
-                Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+                Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+                -- Left padding
+                local pad = Instance.new("UIPadding")
+                pad.PaddingLeft = UDim.new(0, 10)
+                pad.Parent = btn
                 btn.MouseButton1Click:Connect(function()
                     if isBrewing then return end
                     if not selectedSlots[1] then
@@ -123,7 +133,6 @@ local function refreshCauldronIngredients()
                     elseif not selectedSlots[2] then
                         selectedSlots[2] = ingredientId
                     elseif not selectedSlots[3] then
-                        -- Only fill 3rd slot if unlocked
                         local d = getMyData()
                         if d and d.BrewStats and d.BrewStats.TotalBrewed >= 10 then
                             selectedSlots[3] = ingredientId
@@ -135,6 +144,58 @@ local function refreshCauldronIngredients()
                     end
                     updateSlotDisplay()
                 end)
+            end
+        end
+    end
+
+    -- Brew hints: show possible recipes with owned ingredients
+    if #ownedIds >= 2 then
+        local hints = {}
+        for i = 1, #ownedIds do
+            for j = i, #ownedIds do
+                local id1, id2 = ownedIds[i], ownedIds[j]
+                if id1 == id2 and (owned[id1] or 0) < 2 then continue end
+                local potionId = Recipes.lookup(id1, id2)
+                if potionId and potionId ~= "sludge" then
+                    local potion = Potions.Data[potionId]
+                    if potion then
+                        local ing1 = Ingredients.Data[id1]
+                        local ing2 = Ingredients.Data[id2]
+                        local name1 = ing1 and ing1.name or id1
+                        local name2 = ing2 and ing2.name or id2
+                        table.insert(hints, name1 .. " + " .. name2 .. " = " .. potion.name)
+                    end
+                end
+            end
+        end
+        if #hints > 0 then
+            order = order + 1
+            local divider = Instance.new("TextLabel")
+            divider.Name = "HintHeader"
+            divider.Size = UDim2.new(1, -10, 0, 28)
+            divider.BackgroundTransparency = 1
+            divider.Text = "You can brew:"
+            divider.TextColor3 = Color3.fromRGB(255, 215, 100)
+            divider.TextScaled = true
+            divider.Font = Enum.Font.GothamBold
+            divider.TextXAlignment = Enum.TextXAlignment.Left
+            divider.LayoutOrder = order + 1000
+            divider.Parent = grid
+            for h, hint in ipairs(hints) do
+                if h > 5 then break end
+                order = order + 1
+                local hintLabel = Instance.new("TextLabel")
+                hintLabel.Name = "Hint_" .. h
+                hintLabel.Size = UDim2.new(1, -10, 0, 24)
+                hintLabel.BackgroundColor3 = Color3.fromRGB(40, 50, 35)
+                hintLabel.Text = "  " .. hint
+                hintLabel.TextColor3 = Color3.fromRGB(150, 255, 130)
+                hintLabel.TextScaled = true
+                hintLabel.Font = Enum.Font.Gotham
+                hintLabel.TextXAlignment = Enum.TextXAlignment.Left
+                hintLabel.LayoutOrder = order + 1000
+                hintLabel.Parent = grid
+                Instance.new("UICorner", hintLabel).CornerRadius = UDim.new(0, 6)
             end
         end
     end
