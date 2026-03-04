@@ -55,32 +55,30 @@ Remotes.BuyIngredient.OnServerEvent:Connect(function(player, ingredientId, quant
         return
     end
     
+    -- Soft storage warning (allow purchase but warn)
+    local wasAlreadyFull = pds.isIngredientStorageFull and pds.isIngredientStorageFull(data)
+
     -- Execute transaction
     data.Coins = data.Coins - totalCost
     -- V3: Add as fresh stack
     local pdsModule = _G.PlayerDataService
     if pdsModule and pdsModule.addIngredientStack then
         pdsModule.addIngredientStack(data, ingredientId, quantity, "market")
-    else
-        -- Fallback for compatibility
-        if not data.Ingredients[ingredientId] then
-            data.Ingredients[ingredientId] = { stacks = {} }
-        end
-        local config = Ingredients.Data[ingredientId]
-        local shelfHours = config and config.freshness and config.freshness.shelfLifeHours or 24
-        local now = os.time()
-        table.insert(data.Ingredients[ingredientId].stacks, {
-            amount = quantity,
-            acquiredUnix = now,
-            expiresUnix = now + (shelfHours * 3600),
-            source = "market",
-        })
     end
-    
+
     print("[EconomyService] " .. player.Name .. " bought " .. quantity .. "x " .. ingredient.name .. " for " .. totalCost .. " coins")
-    
+
     -- Notify client of updated data
     pds.notifyClient(player)
+
+    -- Send storage warning if at/over cap after purchase
+    if pds.isIngredientStorageFull and pds.isIngredientStorageFull(data) then
+        local used = pds.getTotalIngredientUnits(data)
+        local cap = pds.getIngredientCapacity(data)
+        pcall(function()
+            Remotes.GlobalAnnouncement:FireClient(player, "Inventory full! (" .. used .. "/" .. cap .. ") Brew or sell to make room.")
+        end)
+    end
 end)
 
 -- SellPotion handler

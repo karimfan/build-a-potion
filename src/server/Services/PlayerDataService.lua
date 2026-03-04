@@ -321,6 +321,48 @@ module.consumeIngredientFIFO = consumeIngredientFIFO
 module.computeFreshness = computeFreshness
 module.getFreshnessState = getFreshnessState
 
+-- Storage capacity helpers
+local UpgradeTuning = require(RS.Shared.Config.UpgradeTuning)
+
+function module.getTotalIngredientUnits(data)
+    local total = 0
+    for _, entry in pairs(data.Ingredients or {}) do
+        if type(entry) == "table" and entry.stacks then
+            for _, stack in ipairs(entry.stacks) do
+                total = total + (stack.amount or 0)
+            end
+        elseif type(entry) == "number" then
+            total = total + entry
+        end
+    end
+    return total
+end
+
+function module.getIngredientCapacity(data)
+    local storageTier = data.Upgrades and data.Upgrades.StorageSlots or 1
+    return UpgradeTuning.getStorageCapacity(storageTier)
+end
+
+function module.getTotalPotionUnits(data)
+    local total = 0
+    for _, qty in pairs(data.Potions or {}) do
+        total = total + (qty or 0)
+    end
+    return total
+end
+
+function module.getPotionCapacity()
+    return UpgradeTuning.MAX_POTIONS
+end
+
+function module.isIngredientStorageFull(data)
+    return module.getTotalIngredientUnits(data) >= module.getIngredientCapacity(data)
+end
+
+function module.isPotionStorageFull(data)
+    return module.getTotalPotionUnits(data) >= module.getPotionCapacity()
+end
+
 _G.PlayerDataService = module
 
 -- ============================================================

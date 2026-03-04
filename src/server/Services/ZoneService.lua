@@ -63,6 +63,15 @@ Remotes.ForageNode.OnServerEvent:Connect(function(player, nodeId)
 
     -- Notify client
     pds.notifyClient(player)
+
+    -- Soft storage warning
+    if pds.isIngredientStorageFull and pds.isIngredientStorageFull(data) then
+        local used = pds.getTotalIngredientUnits(data)
+        local cap = pds.getIngredientCapacity(data)
+        pcall(function()
+            Remotes.GlobalAnnouncement:FireClient(player, "Inventory full! (" .. used .. "/" .. cap .. ") Brew or sell to make room.")
+        end)
+    end
 end)
 
 -- Cleanup on leave
@@ -149,6 +158,14 @@ local function spawnRareNode()
         print("[ZoneService] " .. triggerPlayer.Name .. " found " .. tierName .. ": " .. (ingData and ingData.name or ingredientId))
         rareNodeActive = false
         if rareNodePart then rareNodePart:Destroy() rareNodePart = nil end
+        -- Soft storage warning
+        if pds.isIngredientStorageFull and pds.isIngredientStorageFull(data) then
+            local used = pds.getTotalIngredientUnits(data)
+            local cap = pds.getIngredientCapacity(data)
+            pcall(function()
+                Remotes.GlobalAnnouncement:FireClient(triggerPlayer, "Inventory full! (" .. used .. "/" .. cap .. ") Brew or sell to make room.")
+            end)
+        end
     end)
 
     if Remotes:FindFirstChild("GlobalAnnouncement") then

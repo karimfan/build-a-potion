@@ -8,6 +8,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local Remotes = RS:WaitForChild("Remotes")
 local Ingredients = require(RS.Shared.Config.Ingredients)
 local Potions = require(RS.Shared.Config.Potions)
+local UpgradeTuning = require(RS.Shared.Config.UpgradeTuning)
 local Recipes = require(RS.Shared.Config.Recipes)
 
 local cauldronGui = playerGui:WaitForChild("CauldronGui")
@@ -89,6 +90,39 @@ local function refreshCauldronIngredients()
     local grid = cauldronGui.MainFrame.IngredientGrid
     for _, child in ipairs(grid:GetChildren()) do
         if child:IsA("TextButton") or child:IsA("TextLabel") then child:Destroy() end
+    end
+
+    -- Storage counter
+    local totalUnits = 0
+    for _, entry in pairs(data.Ingredients or {}) do
+        if type(entry) == "table" and entry.stacks then
+            for _, stack in ipairs(entry.stacks) do
+                totalUnits = totalUnits + (stack.amount or 0)
+            end
+        elseif type(entry) == "number" then
+            totalUnits = totalUnits + entry
+        end
+    end
+    local storageTier = data.Upgrades and data.Upgrades.StorageSlots or 1
+    local cap = UpgradeTuning.getStorageCapacity(storageTier)
+    local pct = cap > 0 and (totalUnits / cap) or 0
+
+    local storageLabel = Instance.new("TextLabel")
+    storageLabel.Name = "StorageCounter"
+    storageLabel.Size = UDim2.new(1, -10, 0, 24)
+    storageLabel.BackgroundTransparency = 1
+    storageLabel.Text = "Inventory: " .. totalUnits .. " / " .. cap
+    storageLabel.TextScaled = true
+    storageLabel.Font = Enum.Font.GothamBold
+    storageLabel.TextXAlignment = Enum.TextXAlignment.Left
+    storageLabel.LayoutOrder = -1
+    storageLabel.Parent = grid
+    if pct >= 1 then
+        storageLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+    elseif pct >= 0.8 then
+        storageLabel.TextColor3 = Color3.fromRGB(255, 200, 60)
+    else
+        storageLabel.TextColor3 = Color3.fromRGB(180, 180, 190)
     end
 
     -- Collect owned ingredients with quantities
