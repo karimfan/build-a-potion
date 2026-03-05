@@ -620,7 +620,9 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt, triggerPlayer)
     local parent = prompt.Parent
     if not parent then return end
     
-    if parent.Name == "MarketStall" then
+    -- Check if prompt is on NPC (parent is a body part inside MerchantNPC)
+    local ancestor = parent.Parent
+    if parent.Name == "MarketStall" or (ancestor and ancestor.Name == "MerchantNPC") then
         closeAllGuis()
         marketGui.Enabled = true
     elseif parent.Name == "Cauldron" then
