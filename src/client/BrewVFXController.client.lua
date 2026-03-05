@@ -20,6 +20,10 @@ local cauldron, cauldronLiquid, spoon, cauldronGlow
 local isAnimating = false
 local vfxConnection = nil
 local stageEmitters = {}
+local originalCauldronCFrame = nil
+
+-- Sound references (created/destroyed per brew)
+local sizzleSound, fireRoarSound, completionSound
 
 local function getShopRefs()
     local shop = workspace:FindFirstChild("Zones") and workspace.Zones:FindFirstChild("YourShop")
@@ -33,7 +37,6 @@ end
 
 local function setSpoonVisible(visible)
     if not spoon then return end
-    local targetTransp = visible and 0 or 1
     for _, d in ipairs(spoon:GetDescendants()) do
         if d:IsA("BasePart") then
             if visible then
@@ -57,31 +60,52 @@ local function makeEmitter(name, parent, props)
 end
 
 -- All stage emitters
-local steamE, sparkE, fireE, fireworkE, bigFireE, magicSwirl, arcaneDustE, voidFlareE
+local steamE, steamPlumeE, sparkE, fireE, fireworkE, bigFireE, magicSwirl, arcaneDustE, voidFlareE
 
 local function setupEmitters()
     if not cauldron then return end
     for _, e in ipairs(stageEmitters) do if e and e.Parent then e:Destroy() end end
     stageEmitters = {}
 
-    -- Thick steam
+    -- Thick steam (base layer)
     steamE = makeEmitter("Steam", cauldron, {
         Color = ColorSequence.new(Color3.fromRGB(220, 230, 255), Color3.fromRGB(180, 200, 240)),
         Size = NumberSequence.new({
             NumberSequenceKeypoint.new(0, 0.5),
-            NumberSequenceKeypoint.new(0.5, 2.5),
-            NumberSequenceKeypoint.new(1, 4)
+            NumberSequenceKeypoint.new(0.5, 3),
+            NumberSequenceKeypoint.new(1, 6)
         }),
         Lifetime = NumberRange.new(2, 5),
-        Speed = NumberRange.new(1, 4),
+        Speed = NumberRange.new(1, 5),
         SpreadAngle = Vector2.new(25, 25),
         Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.3),
-            NumberSequenceKeypoint.new(0.5, 0.5),
+            NumberSequenceKeypoint.new(0, 0.2),
+            NumberSequenceKeypoint.new(0.5, 0.45),
             NumberSequenceKeypoint.new(1, 1)
         }),
         LightEmission = 0.2,
         RotSpeed = NumberRange.new(-30, 30),
+        Rotation = NumberRange.new(0, 360),
+    })
+
+    -- Big billowing steam plumes (new — dramatic clouds)
+    steamPlumeE = makeEmitter("SteamPlume", cauldron, {
+        Color = ColorSequence.new(Color3.fromRGB(235, 240, 255), Color3.fromRGB(200, 210, 230)),
+        Size = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 2),
+            NumberSequenceKeypoint.new(0.4, 6),
+            NumberSequenceKeypoint.new(1, 10)
+        }),
+        Lifetime = NumberRange.new(3, 7),
+        Speed = NumberRange.new(0.8, 2.5),
+        SpreadAngle = Vector2.new(15, 15),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.15),
+            NumberSequenceKeypoint.new(0.3, 0.35),
+            NumberSequenceKeypoint.new(1, 1)
+        }),
+        LightEmission = 0.15,
+        RotSpeed = NumberRange.new(-20, 20),
         Rotation = NumberRange.new(0, 360),
     })
 
@@ -217,6 +241,69 @@ local function setupEmitters()
     })
 end
 
+-- === SOUND EFFECTS ===
+local function setupSounds()
+    if not cauldron then return end
+    -- Clean up any existing brew sounds
+    cleanupSounds()
+
+    -- Sizzle/bubble loop
+    sizzleSound = Instance.new("Sound")
+    sizzleSound.Name = "BrewSizzle"
+    sizzleSound.SoundId = "rbxassetid://9113869830" -- water/sizzle loop
+    sizzleSound.Looped = true
+    sizzleSound.Volume = 0
+    sizzleSound.RollOffMaxDistance = 60
+    sizzleSound.RollOffMinDistance = 5
+    sizzleSound.Parent = cauldron
+
+    -- Fire roar loop
+    fireRoarSound = Instance.new("Sound")
+    fireRoarSound.Name = "BrewFireRoar"
+    fireRoarSound.SoundId = "rbxassetid://9114488653" -- fire crackling
+    fireRoarSound.Looped = true
+    fireRoarSound.Volume = 0
+    fireRoarSound.RollOffMaxDistance = 50
+    fireRoarSound.RollOffMinDistance = 5
+    fireRoarSound.Parent = cauldron
+
+    -- Completion boom (one-shot)
+    completionSound = Instance.new("Sound")
+    completionSound.Name = "BrewComplete"
+    completionSound.SoundId = "rbxassetid://9125402735" -- magical burst
+    completionSound.Looped = false
+    completionSound.Volume = 0.8
+    completionSound.RollOffMaxDistance = 80
+    completionSound.RollOffMinDistance = 5
+    completionSound.Parent = cauldron
+end
+
+function cleanupSounds()
+    if sizzleSound and sizzleSound.Parent then sizzleSound:Destroy() end
+    if fireRoarSound and fireRoarSound.Parent then fireRoarSound:Destroy() end
+    if completionSound and completionSound.Parent then completionSound:Destroy() end
+    sizzleSound, fireRoarSound, completionSound = nil, nil, nil
+end
+
+-- === CAMERA SHAKE ===
+local function getCameraShakeTarget()
+    local char = player.Character
+    return char and char:FindFirstChildOfClass("Humanoid")
+end
+
+local function applyCameraShake(intensity)
+    local hum = getCameraShakeTarget()
+    if not hum then return end
+    local x = (math.random() - 0.5) * 2 * intensity
+    local y = (math.random() - 0.5) * 2 * intensity
+    hum.CameraOffset = Vector3.new(x, y, 0)
+end
+
+local function resetCameraShake()
+    local hum = getCameraShakeTarget()
+    if hum then hum.CameraOffset = Vector3.new(0, 0, 0) end
+end
+
 -- Spoon orbit animation
 local function startSpoonOrbit()
     if not spoon or not cauldron then return end
@@ -267,7 +354,9 @@ local function updateBrewVFX(pct, mult)
     end
 
     -- Stage 1: Steam always on during brew, intensifies
-    if steamE then steamE.Rate = 10 + pct * 30 * mult end
+    if steamE then steamE.Rate = 12 + pct * 45 * mult end
+    -- Steam plumes from 20%+
+    if steamPlumeE then steamPlumeE.Rate = pct >= 0.2 and (4 + (pct - 0.2) * 25 * math.min(mult, 3)) or 0 end
     -- Magic swirl starts at 10%
     if magicSwirl then magicSwirl.Rate = pct >= 0.1 and (6 + pct * 16 * mult) or 0 end
     -- Stage 2: Sparks at 25%+
@@ -278,6 +367,43 @@ local function updateBrewVFX(pct, mult)
     if arcaneDustE then arcaneDustE.Rate = pct >= 0.35 and (8 + (pct - 0.35) * 38 * mult) or 0 end
     -- Stage 5: Void flare near completion on high multipliers
     if voidFlareE then voidFlareE.Rate = (mult >= 3 and pct >= 0.78) and (20 + (pct - 0.78) * 300 * (mult / 3)) or 0 end
+
+    -- Sound: sizzle volume scales with progress
+    if sizzleSound then
+        sizzleSound.Volume = 0.1 + pct * 0.5 * math.min(mult, 2)
+        if not sizzleSound.IsPlaying then sizzleSound:Play() end
+    end
+    -- Sound: fire roar at 50%+
+    if fireRoarSound then
+        if pct >= 0.5 then
+            fireRoarSound.Volume = (pct - 0.5) * 0.8 * math.min(mult, 2)
+            if not fireRoarSound.IsPlaying then fireRoarSound:Play() end
+        else
+            fireRoarSound.Volume = 0
+        end
+    end
+
+    -- Cauldron shake (physical rumble)
+    if originalCauldronCFrame and cauldron then
+        local shakeIntensity = 0.02 + pct * 0.13 * math.min(mult, 4)
+        local ox = (math.random() - 0.5) * shakeIntensity
+        local oz = (math.random() - 0.5) * shakeIntensity
+        local oy = (math.random() - 0.5) * shakeIntensity * 0.3
+        cauldron.CFrame = originalCauldronCFrame * CFrame.new(ox, oy, oz)
+    end
+
+    -- Camera shake (subtle tremor, scales with progress)
+    local camIntensity = 0.01 + pct * 0.08 * math.min(mult, 3)
+    applyCameraShake(camIntensity)
+
+    -- Liquid bubbling pulse (subtle size oscillation)
+    if cauldronLiquid then
+        local pulse = 1 + math.sin(tick() * 4 + pct * 10) * 0.02 * (1 + pct * 2)
+        local baseSize = cauldronLiquid:GetAttribute("OriginalSize")
+        if baseSize then
+            cauldronLiquid.Size = baseSize * pulse
+        end
+    end
 end
 
 local function playShockwave(mult, rarity)
@@ -316,6 +442,8 @@ local function playCompletionBurst(mult, rarity)
     if voidFlareE and (rarity == "Mythic" or rarity == "Divine") then
         voidFlareE.Rate = 140 * mult
     end
+    -- Max steam plumes
+    if steamPlumeE then steamPlumeE.Rate = 30 * mult end
     -- Flash glow
     if cauldronGlow then
         cauldronGlow.Range = 110 + mult * 10
@@ -324,6 +452,38 @@ local function playCompletionBurst(mult, rarity)
     end
 
     playShockwave(math.clamp(mult, 1, 3), rarity)
+
+    -- Completion sound
+    if completionSound then completionSound:Play() end
+
+    -- Intense camera shake burst (decays over 0.5s)
+    task.spawn(function()
+        local burstStart = tick()
+        local burstDuration = 0.5
+        while tick() - burstStart < burstDuration do
+            local t = (tick() - burstStart) / burstDuration
+            local intensity = 0.4 * math.min(mult, 3) * (1 - t)
+            applyCameraShake(intensity)
+            RunService.Heartbeat:Wait()
+        end
+        resetCameraShake()
+    end)
+
+    -- Cauldron jump — pop up then settle
+    if originalCauldronCFrame and cauldron then
+        local jumpHeight = 0.5 * math.min(mult, 3)
+        local jumpCF = originalCauldronCFrame + Vector3.new(0, jumpHeight, 0)
+        TweenService:Create(cauldron, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            CFrame = jumpCF,
+        }):Play()
+        task.delay(0.15, function()
+            if cauldron and originalCauldronCFrame then
+                TweenService:Create(cauldron, TweenInfo.new(0.3, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out), {
+                    CFrame = originalCauldronCFrame,
+                }):Play()
+            end
+        end)
+    end
 
     task.delay(0.8, function()
         if bigFireE then bigFireE.Rate = 0 end
@@ -334,6 +494,10 @@ local function playCompletionBurst(mult, rarity)
         if sparkE then sparkE.Rate = 0 end
         if arcaneDustE then arcaneDustE.Rate = 0 end
         if voidFlareE then voidFlareE.Rate = 0 end
+        if steamPlumeE then steamPlumeE.Rate = 0 end
+        -- Fade out sounds
+        if sizzleSound then TweenService:Create(sizzleSound, TweenInfo.new(1), { Volume = 0 }):Play() end
+        if fireRoarSound then TweenService:Create(fireRoarSound, TweenInfo.new(0.5), { Volume = 0 }):Play() end
     end)
     task.delay(2, function()
         resetVFX()
@@ -352,13 +516,35 @@ function resetVFX()
     if cauldronLiquid then
         cauldronLiquid.Color = Color3.fromRGB(50, 200, 100)
     end
+    -- Restore cauldron position
+    if originalCauldronCFrame and cauldron then
+        cauldron.CFrame = originalCauldronCFrame
+    end
+    originalCauldronCFrame = nil
+    resetCameraShake()
+    -- Stop sounds
+    if sizzleSound and sizzleSound.IsPlaying then sizzleSound:Stop() end
+    if fireRoarSound and fireRoarSound.IsPlaying then fireRoarSound:Stop() end
+    cleanupSounds()
 end
 
 -- === MAIN BREW ANIMATION LOOP ===
 local function runBrewAnimation(duration, endUnix, rarity)
     if not getShopRefs() then return end
     setupEmitters()
+    setupSounds()
     isAnimating = true
+
+    -- Save original CFrame for shake
+    if cauldron then
+        originalCauldronCFrame = cauldron.CFrame
+    end
+
+    -- Save original liquid size for pulse
+    if cauldronLiquid and not cauldronLiquid:GetAttribute("OriginalSize") then
+        cauldronLiquid:SetAttribute("OriginalSize", cauldronLiquid.Size)
+    end
+
     startSpoonOrbit()
 
     local multMap = { Common = 1, Uncommon = 1.8, Rare = 3.2, Mythic = 5.6, Divine = 8.5 }
@@ -417,4 +603,4 @@ task.spawn(function()
     end
 end)
 
-print("[BrewVFXController] Initialized (event-driven)")
+print("[BrewVFXController] Initialized (event-driven + sizzle VFX)")
