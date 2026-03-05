@@ -261,7 +261,7 @@ local function loadPlayerData(player)
         end)
         if success then break end
         warn("[PlayerDataService] Load attempt " .. attempt .. " failed for " .. player.Name)
-        task.wait(attempt * 2)
+        task.wait(1)
     end
 
     if success and data then
