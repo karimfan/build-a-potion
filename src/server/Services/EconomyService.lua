@@ -135,7 +135,19 @@ Remotes.SellPotion.OnServerEvent:Connect(function(player, potionId, quantity)
     end
     data.Coins = data.Coins + totalValue
     -- Track sell coins for score
-    if _G.ScoreService then _G.ScoreService.addSellCoins(data, totalValue) end    
+    if _G.ScoreService then _G.ScoreService.addSellCoins(data, totalValue) end
+    -- Remove sold potions from shop display
+    if data.PotionDisplays then
+        local toRemove = quantity
+        for i = #data.PotionDisplays, 1, -1 do
+            if toRemove <= 0 then break end
+            local display = data.PotionDisplays[i]
+            if display.potionId == potionId or display.potionId == baseId then
+                table.remove(data.PotionDisplays, i)
+                toRemove = toRemove - 1
+            end
+        end
+    end
     print("[EconomyService] " .. player.Name .. " sold " .. quantity .. "x " .. potion.name .. " for " .. totalValue .. " coins")
     
     -- Notify client
