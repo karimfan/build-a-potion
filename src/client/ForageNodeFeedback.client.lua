@@ -64,7 +64,10 @@ task.spawn(function()
     
     while true do
         for _, child in ipairs(grove:GetChildren()) do
-            if child.Name:match("ForageNode") and child.Transparency < 0.5 then
+            if child.Name:match("ForageNode") and child.Transparency < 0.5 and child:IsA("BasePart") then
+                -- Skip locked nodes (prompt disabled by GroveExpansionController)
+                local prompt = child:FindFirstChildWhichIsA("ProximityPrompt")
+                if prompt and not prompt.Enabled then continue end
                 -- Subtle pulse
                 local orig = nodeStates[child] and nodeStates[child].size or child.Size
                 TweenService:Create(child, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {

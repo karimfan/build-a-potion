@@ -75,6 +75,9 @@
           },
           "PotionDisplayTuning": {
             "$path": "src/shared/Config/PotionDisplayTuning.lua"
+          },
+          "ForageTuning": {
+            "$path": "src/shared/Config/ForageTuning.lua"
           }
         }
       }
@@ -126,6 +129,9 @@
         },
         "ShopRealmController": {
           "$path": "src/client/ShopRealmController.client.lua"
+        },
+        "GroveExpansionController": {
+          "$path": "src/client/GroveExpansionController.client.lua"
         }
       }
     }
