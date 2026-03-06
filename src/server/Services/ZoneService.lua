@@ -127,18 +127,34 @@ local function spawnRareNode()
     particles.Parent = rareNodePart
 
     local bb = Instance.new("BillboardGui")
-    bb.Size = UDim2.new(0, 120, 0, 40)
-    bb.StudsOffset = Vector3.new(0, 3, 0)
+    bb.Size = UDim2.new(0, 160, 0, 50)
+    bb.StudsOffset = Vector3.new(0, 4, 0)
     bb.AlwaysOnTop = true
     bb.Parent = rareNodePart
+    -- Ingredient name label
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
+    label.Size = UDim2.new(1, 0, 0.5, 0)
+    label.Position = UDim2.new(0, 0, 0, 0)
     label.BackgroundTransparency = 1
-    label.Text = tierName .. "!"
+    label.Text = ingData and ingData.name or ingredientId
     label.TextColor3 = rareNodePart.Color
     label.TextScaled = true
     label.Font = Enum.Font.GothamBlack
+    label.TextStrokeColor3 = Color3.new(0, 0, 0)
+    label.TextStrokeTransparency = 0
     label.Parent = bb
+    -- Tier label below
+    local tierLabel = Instance.new("TextLabel")
+    tierLabel.Size = UDim2.new(1, 0, 0.4, 0)
+    tierLabel.Position = UDim2.new(0, 0, 0.55, 0)
+    tierLabel.BackgroundTransparency = 1
+    tierLabel.Text = tierName
+    tierLabel.TextColor3 = rareNodePart.Color
+    tierLabel.TextScaled = true
+    tierLabel.Font = Enum.Font.GothamBold
+    tierLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    tierLabel.TextStrokeTransparency = 0
+    tierLabel.Parent = bb
 
     local prompt = Instance.new("ProximityPrompt")
     prompt.ActionText = "Forage"
