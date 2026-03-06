@@ -21,7 +21,10 @@ local vfxConnection = nil
 local stageEmitters = {}
 local originalCauldronCFrame = nil
 
-local sizzleSound, fireRoarSound, completionSound
+local bubbleSound, rumbleSound, thunderSound, completionSound, swooshSound, chimeSound
+local fireBurstSounds = {}
+local lastFireBurstTime = 0
+local lastThunderTime = 0
 
 local function getShopRefs()
     local shop = workspace:FindFirstChild("Zones") and workspace.Zones:FindFirstChild("YourShop")
@@ -402,29 +405,69 @@ local function setupEmitters()
     })
 end
 
--- === SOUND EFFECTS ===
+-- === SOUND EFFECTS (all IDs verified working in Studio) ===
 local function setupSounds()
     if not cauldron then return end
     cleanupSounds()
 
-    sizzleSound = Instance.new("Sound")
-    sizzleSound.Name = "BrewSizzle"
-    sizzleSound.SoundId = "rbxassetid://9113869830"
-    sizzleSound.Looped = true
-    sizzleSound.Volume = 0
-    sizzleSound.RollOffMaxDistance = 60
-    sizzleSound.RollOffMinDistance = 5
-    sizzleSound.Parent = cauldron
+    -- Bubbling cauldron loop (swim ambience pitched up)
+    bubbleSound = Instance.new("Sound")
+    bubbleSound.Name = "BrewBubble"
+    bubbleSound.SoundId = "rbxasset://sounds/action_swim.mp3"
+    bubbleSound.Looped = true
+    bubbleSound.Volume = 0
+    bubbleSound.PlaybackSpeed = 1.4
+    bubbleSound.RollOffMaxDistance = 60
+    bubbleSound.RollOffMinDistance = 5
+    bubbleSound.Parent = cauldron
 
-    fireRoarSound = Instance.new("Sound")
-    fireRoarSound.Name = "BrewFireRoar"
-    fireRoarSound.SoundId = "rbxassetid://9114488653"
-    fireRoarSound.Looped = true
-    fireRoarSound.Volume = 0
-    fireRoarSound.RollOffMaxDistance = 50
-    fireRoarSound.RollOffMinDistance = 5
-    fireRoarSound.Parent = cauldron
+    -- Deep rumble/roar loop (falling wind pitched way down)
+    rumbleSound = Instance.new("Sound")
+    rumbleSound.Name = "BrewRumble"
+    rumbleSound.SoundId = "rbxasset://sounds/action_falling.mp3"
+    rumbleSound.Looped = true
+    rumbleSound.Volume = 0
+    rumbleSound.PlaybackSpeed = 0.4
+    rumbleSound.RollOffMaxDistance = 80
+    rumbleSound.RollOffMinDistance = 5
+    rumbleSound.Parent = cauldron
 
+    -- Thunder crack for lightning at high progress
+    thunderSound = Instance.new("Sound")
+    thunderSound.Name = "BrewThunder"
+    thunderSound.SoundId = "rbxassetid://142070127"
+    thunderSound.Looped = false
+    thunderSound.Volume = 0.6
+    thunderSound.RollOffMaxDistance = 80
+    thunderSound.RollOffMinDistance = 5
+    thunderSound.Parent = cauldron
+
+    -- Fire burst one-shots (random during fire phase)
+    for i = 1, 3 do
+        local fb = Instance.new("Sound")
+        fb.Name = "BrewFireBurst_" .. i
+        fb.SoundId = "rbxassetid://130113370"
+        fb.Looped = false
+        fb.Volume = 0.4
+        fb.PlaybackSpeed = 0.8 + math.random() * 0.4
+        fb.RollOffMaxDistance = 50
+        fb.RollOffMinDistance = 5
+        fb.Parent = cauldron
+        table.insert(fireBurstSounds, fb)
+    end
+
+    -- Completion swoosh
+    swooshSound = Instance.new("Sound")
+    swooshSound.Name = "BrewSwoosh"
+    swooshSound.SoundId = "rbxassetid://2865227271"
+    swooshSound.Looped = false
+    swooshSound.Volume = 0.8
+    swooshSound.PlaybackSpeed = 1.2
+    swooshSound.RollOffMaxDistance = 100
+    swooshSound.RollOffMinDistance = 5
+    swooshSound.Parent = cauldron
+
+    -- Completion magical burst
     completionSound = Instance.new("Sound")
     completionSound.Name = "BrewComplete"
     completionSound.SoundId = "rbxassetid://9125402735"
@@ -433,13 +476,34 @@ local function setupSounds()
     completionSound.RollOffMaxDistance = 100
     completionSound.RollOffMinDistance = 5
     completionSound.Parent = cauldron
+
+    -- Completion chime
+    chimeSound = Instance.new("Sound")
+    chimeSound.Name = "BrewChime"
+    chimeSound.SoundId = "rbxassetid://169380525"
+    chimeSound.Looped = false
+    chimeSound.Volume = 0.7
+    chimeSound.PlaybackSpeed = 0.8
+    chimeSound.RollOffMaxDistance = 80
+    chimeSound.RollOffMinDistance = 5
+    chimeSound.Parent = cauldron
 end
 
 function cleanupSounds()
-    if sizzleSound and sizzleSound.Parent then sizzleSound:Destroy() end
-    if fireRoarSound and fireRoarSound.Parent then fireRoarSound:Destroy() end
+    if bubbleSound and bubbleSound.Parent then bubbleSound:Destroy() end
+    if rumbleSound and rumbleSound.Parent then rumbleSound:Destroy() end
+    if thunderSound and thunderSound.Parent then thunderSound:Destroy() end
     if completionSound and completionSound.Parent then completionSound:Destroy() end
-    sizzleSound, fireRoarSound, completionSound = nil, nil, nil
+    if swooshSound and swooshSound.Parent then swooshSound:Destroy() end
+    if chimeSound and chimeSound.Parent then chimeSound:Destroy() end
+    for _, fb in ipairs(fireBurstSounds) do
+        if fb and fb.Parent then fb:Destroy() end
+    end
+    bubbleSound, rumbleSound, thunderSound = nil, nil, nil
+    completionSound, swooshSound, chimeSound = nil, nil, nil
+    fireBurstSounds = {}
+    lastFireBurstTime = 0
+    lastThunderTime = 0
 end
 
 -- === CAMERA SHAKE ===
@@ -542,17 +606,45 @@ local function updateBrewVFX(pct, mult)
     -- VOID FLARE: from 75%+ on mythic/divine
     if voidFlareE then voidFlareE.Rate = (mult >= 3 and pct >= 0.75) and (25 + (pct - 0.75) * 400 * (mult / 3)) or 0 end
 
-    -- Sounds
-    if sizzleSound then
-        sizzleSound.Volume = 0.15 + pct * 0.7 * math.min(mult, 2)
-        if not sizzleSound.IsPlaying then sizzleSound:Play() end
+    -- SOUNDS: bubbling loop scales with progress
+    if bubbleSound then
+        bubbleSound.Volume = 0.1 + pct * 0.6 * math.min(mult, 2)
+        bubbleSound.PlaybackSpeed = 1.4 + pct * 0.6
+        if not bubbleSound.IsPlaying then bubbleSound:Play() end
     end
-    if fireRoarSound then
-        if pct >= 0.4 then
-            fireRoarSound.Volume = (pct - 0.4) * 1.0 * math.min(mult, 2)
-            if not fireRoarSound.IsPlaying then fireRoarSound:Play() end
+    -- Rumble loop from 30%+
+    if rumbleSound then
+        if pct >= 0.3 then
+            rumbleSound.Volume = (pct - 0.3) * 0.5 * math.min(mult, 2)
+            rumbleSound.PlaybackSpeed = 0.3 + pct * 0.2
+            if not rumbleSound.IsPlaying then rumbleSound:Play() end
         else
-            fireRoarSound.Volume = 0
+            rumbleSound.Volume = 0
+        end
+    end
+    -- Random fire burst one-shots during fire phase
+    if pct >= 0.4 and #fireBurstSounds > 0 then
+        local now = tick()
+        local interval = math.max(0.5, 3 - pct * 2.5)
+        if now - lastFireBurstTime > interval then
+            local fb = fireBurstSounds[math.random(1, #fireBurstSounds)]
+            if fb and not fb.IsPlaying then
+                fb.Volume = 0.3 + pct * 0.4
+                fb.PlaybackSpeed = 0.7 + math.random() * 0.6
+                fb:Play()
+            end
+            lastFireBurstTime = now
+        end
+    end
+    -- Thunder crack at 70%+ for rare+
+    if mult >= 2 and pct >= 0.7 and thunderSound then
+        local now = tick()
+        local interval = math.max(1.5, 5 - pct * 4)
+        if now - lastThunderTime > interval then
+            thunderSound.Volume = 0.3 + (pct - 0.7) * 1.5 * math.min(mult, 3)
+            thunderSound.PlaybackSpeed = 0.8 + math.random() * 0.4
+            thunderSound:Play()
+            lastThunderTime = now
         end
     end
 
@@ -643,7 +735,16 @@ local function playCompletionBurst(mult, rarity)
 
     playShockwave(math.clamp(mult, 1, 3), rarity)
 
+    -- Completion audio: swoosh + burst + chime layered
+    if swooshSound then swooshSound:Play() end
     if completionSound then completionSound:Play() end
+    task.delay(0.3, function()
+        if chimeSound then chimeSound:Play() end
+    end)
+    if thunderSound and (rarity == "Mythic" or rarity == "Divine") then
+        thunderSound.Volume = 0.8
+        thunderSound:Play()
+    end
 
     -- INTENSE camera shake burst (decays over 0.8s)
     task.spawn(function()
@@ -694,8 +795,8 @@ local function playCompletionBurst(mult, rarity)
         if magicRingE then magicRingE.Rate = 0 end
         if smokeTrailE then smokeTrailE.Rate = 0 end
         if emberE then emberE.Rate = 0 end
-        if sizzleSound then TweenService:Create(sizzleSound, TweenInfo.new(1), { Volume = 0 }):Play() end
-        if fireRoarSound then TweenService:Create(fireRoarSound, TweenInfo.new(0.5), { Volume = 0 }):Play() end
+        if bubbleSound then TweenService:Create(bubbleSound, TweenInfo.new(1), { Volume = 0 }):Play() end
+        if rumbleSound then TweenService:Create(rumbleSound, TweenInfo.new(0.5), { Volume = 0 }):Play() end
     end)
     task.delay(3.0, function()
         resetVFX()
@@ -719,8 +820,8 @@ function resetVFX()
     end
     originalCauldronCFrame = nil
     resetCameraShake()
-    if sizzleSound and sizzleSound.IsPlaying then sizzleSound:Stop() end
-    if fireRoarSound and fireRoarSound.IsPlaying then fireRoarSound:Stop() end
+    if bubbleSound and bubbleSound.IsPlaying then bubbleSound:Stop() end
+    if rumbleSound and rumbleSound.IsPlaying then rumbleSound:Stop() end
     cleanupSounds()
 end
 
