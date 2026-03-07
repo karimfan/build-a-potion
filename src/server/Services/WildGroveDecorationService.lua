@@ -675,7 +675,7 @@ local function createWizardShopDecor()
         for b = 1, count do
             local offset = -width/2 + (b-0.5)*(width/count) + rng:NextNumber(-0.2, 0.2)
             local bx, bz = cx, cz
-            if wallAxis == "X" then bz = cz + offset else bx = cx + offset end
+            if wallAxis == "X" then bx = cx + offset else bz = cz + offset end
             local h = rng:NextNumber(0.6, 1.4)
             local w = rng:NextNumber(0.3, 0.6)
             local color = potionColors[rng:NextInteger(1, #potionColors)]
@@ -688,12 +688,10 @@ local function createWizardShopDecor()
         end
     end
     for _, tier in ipairs(shelfTiers) do
-        -- North/south walls: shelf runs along X, wall normal is Z
-        shelfRow(-30, -47, tier, 18, "Z"); shelfRow(30, -47, tier, 18, "Z")
-        shelfRow(-25, 47, tier, 20, "Z"); shelfRow(25, 47, tier, 20, "Z")
-        -- East/west walls: shelf runs along Z, wall normal is X
-        shelfRow(47, -20, tier, 18, "X"); shelfRow(47, 20, tier, 18, "X")
-        shelfRow(-47, -20, tier, 18, "X"); shelfRow(-47, 20, tier, 18, "X")
+        shelfRow(-30, -47, tier, 18, "X"); shelfRow(30, -47, tier, 18, "X")
+        shelfRow(-25, 47, tier, 20, "X"); shelfRow(25, 47, tier, 20, "X")
+        shelfRow(47, -20, tier, 18, "Z"); shelfRow(47, 20, tier, 18, "Z")
+        shelfRow(-47, -20, tier, 18, "Z"); shelfRow(-47, 20, tier, 18, "Z")
     end
 
     -- Work tables (4 around cauldron)
