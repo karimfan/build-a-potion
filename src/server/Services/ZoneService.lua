@@ -2,7 +2,7 @@ local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 local Types = require(RS.Shared.Types)
 local Ingredients = require(RS.Shared.Config.Ingredients)
-local ForageTuning = require(RS.Shared.Config.ForageTuning)
+local ForageTuning = require(RS.Shared:WaitForChild("Config"):WaitForChild("ForageTuning"))
 local Remotes = RS.Remotes
 
 -- Forage cooldowns: forageCooldowns[userId][nodeId] = expiry time
