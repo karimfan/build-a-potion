@@ -381,19 +381,21 @@ end
 
 local function tuneCauldron()
     local zones = Workspace:FindFirstChild("Zones")
-    if not zones then
-        return
-    end
+    if not zones then return end
     local yourShop = zones:FindFirstChild("YourShop")
-    if not yourShop then
-        return
-    end
+    if not yourShop then return end
     local cauldron = yourShop:FindFirstChild("Cauldron")
-    if not cauldron then
-        return
-    end
+    if not cauldron then return end
 
-    local bronze = Color3.fromRGB(157, 105, 61)
+    -- Shiny rustic golden palette
+    local goldColors = {
+        Cauldron = Color3.fromRGB(185, 145, 55),
+        CauldronRim = Color3.fromRGB(215, 175, 65),
+        CauldronInnerRim = Color3.fromRGB(140, 110, 40),
+        Leg = Color3.fromRGB(160, 125, 45),
+        Handle = Color3.fromRGB(200, 160, 55),
+    }
+    local goldDefault = Color3.fromRGB(185, 145, 55)
     local cauldronScale = 0.48
 
     if cauldron:IsA("BasePart") then
@@ -401,7 +403,8 @@ local function tuneCauldron()
         cauldron.Size = Vector3.new(cauldron.Size.X * cauldronScale, cauldron.Size.Y * cauldronScale, cauldron.Size.Z * cauldronScale)
         cauldron.Position = cauldron.Position - Vector3.new(0, (oldY - cauldron.Size.Y) * 0.5, 0)
         cauldron.Material = Enum.Material.Metal
-        cauldron.Color = bronze
+        cauldron.Color = goldDefault
+        cauldron.Reflectance = 0.25
     elseif cauldron:IsA("Model") then
         pcall(function()
             cauldron:ScaleTo(cauldronScale)
@@ -409,9 +412,140 @@ local function tuneCauldron()
         for _, d in ipairs(cauldron:GetDescendants()) do
             if d:IsA("BasePart") then
                 d.Material = Enum.Material.Metal
-                d.Color = bronze
+                d.Reflectance = 0.25
+                -- Apply per-part gold color
+                local c = goldDefault
+                for prefix, col in pairs(goldColors) do
+                    if d.Name:find(prefix) then c = col break end
+                end
+                if d.Name == "CauldronLiquid" then
+                    d.Color = Color3.fromRGB(255, 120, 20)
+                    d.Material = Enum.Material.Neon
+                    d.Reflectance = 0
+                else
+                    d.Color = c
+                end
             end
         end
+    end
+
+    -- Find liquid for emitter attachment
+    local liquid
+    if cauldron:IsA("Model") then
+        liquid = cauldron:FindFirstChild("CauldronLiquid")
+    end
+    local emitterParent = liquid or cauldron
+
+    -- Clean old ambient emitters
+    for _, d in ipairs(emitterParent:GetChildren()) do
+        if d:IsA("ParticleEmitter") and d.Name:find("Ambient") then d:Destroy() end
+    end
+
+    -- Ambient fire — roaring flames from liquid
+    local fire = Instance.new("ParticleEmitter")
+    fire.Name = "AmbientFire"
+    fire.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 220, 50)),
+        ColorSequenceKeypoint.new(0.3, Color3.fromRGB(255, 140, 20)),
+        ColorSequenceKeypoint.new(0.7, Color3.fromRGB(255, 60, 0)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 20, 0)),
+    })
+    fire.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1.5), NumberSequenceKeypoint.new(0.3, 4),
+        NumberSequenceKeypoint.new(0.7, 2.5), NumberSequenceKeypoint.new(1, 0),
+    })
+    fire.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.4, 0.1), NumberSequenceKeypoint.new(1, 1),
+    })
+    fire.Lifetime = NumberRange.new(0.4, 1.2)
+    fire.Rate = 40
+    fire.Speed = NumberRange.new(6, 16)
+    fire.SpreadAngle = Vector2.new(20, 20)
+    fire.LightEmission = 1
+    fire.RotSpeed = NumberRange.new(-30, 30)
+    fire.Parent = emitterParent
+
+    -- Steam plumes — thick billowing clouds
+    local steam = Instance.new("ParticleEmitter")
+    steam.Name = "AmbientSteam"
+    steam.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 220, 180)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(220, 200, 190)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 175, 170)),
+    })
+    steam.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 2), NumberSequenceKeypoint.new(0.3, 6),
+        NumberSequenceKeypoint.new(0.7, 10), NumberSequenceKeypoint.new(1, 14),
+    })
+    steam.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(0.3, 0.4),
+        NumberSequenceKeypoint.new(0.7, 0.7), NumberSequenceKeypoint.new(1, 1),
+    })
+    steam.Lifetime = NumberRange.new(2, 5)
+    steam.Rate = 18
+    steam.Speed = NumberRange.new(3, 8)
+    steam.SpreadAngle = Vector2.new(15, 15)
+    steam.LightEmission = 0.2
+    steam.RotSpeed = NumberRange.new(-20, 20)
+    steam.Rotation = NumberRange.new(0, 360)
+    steam.Parent = emitterParent
+
+    -- Embers — floating hot motes
+    local embers = Instance.new("ParticleEmitter")
+    embers.Name = "AmbientEmber"
+    embers.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 200, 50)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 120, 20)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 50, 0)),
+    })
+    embers.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(0.3, 0.25), NumberSequenceKeypoint.new(1, 0),
+    })
+    embers.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.7, 0.3), NumberSequenceKeypoint.new(1, 1),
+    })
+    embers.Lifetime = NumberRange.new(1.5, 4)
+    embers.Rate = 25
+    embers.Speed = NumberRange.new(1, 5)
+    embers.SpreadAngle = Vector2.new(40, 40)
+    embers.LightEmission = 1
+    embers.RotSpeed = NumberRange.new(-60, 60)
+    embers.Parent = emitterParent
+
+    -- Lava bubbles — popping blobs
+    local lava = Instance.new("ParticleEmitter")
+    lava.Name = "AmbientLava"
+    lava.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 180, 30)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 100, 0)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 40, 0)),
+    })
+    lava.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(0.2, 1.2), NumberSequenceKeypoint.new(1, 0),
+    })
+    lava.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.5, 0.2), NumberSequenceKeypoint.new(1, 1),
+    })
+    lava.Lifetime = NumberRange.new(0.3, 0.8)
+    lava.Rate = 15
+    lava.Speed = NumberRange.new(8, 20)
+    lava.SpreadAngle = Vector2.new(50, 50)
+    lava.LightEmission = 1
+    lava.Parent = emitterParent
+
+    -- Warm golden glow
+    local mainPart = cauldron:IsA("Model") and cauldron:FindFirstChild("Cauldron") or cauldron
+    if mainPart then
+        local glow = mainPart:FindFirstChild("CauldronGlow")
+        if not glow then
+            glow = Instance.new("PointLight")
+            glow.Name = "CauldronGlow"
+            glow.Parent = mainPart
+        end
+        glow.Color = Color3.fromRGB(255, 180, 50)
+        glow.Brightness = 4
+        glow.Range = 35
+        glow.Shadows = false
     end
 end
 
