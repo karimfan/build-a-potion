@@ -554,10 +554,12 @@ local function createWizardShopDecor()
         end
     end
     for _, tier in ipairs(shelfTiers) do
-        shelfRow(-30, -47, tier, 18, "X"); shelfRow(30, -47, tier, 18, "X")
-        shelfRow(-25, 47, tier, 20, "X"); shelfRow(25, 47, tier, 20, "X")
-        shelfRow(47, -20, tier, 18, "Z"); shelfRow(47, 20, tier, 18, "Z")
-        shelfRow(-47, -20, tier, 18, "Z"); shelfRow(-47, 20, tier, 18, "Z")
+        -- North/south walls: shelf runs along X, wall normal is Z
+        shelfRow(-30, -47, tier, 18, "Z"); shelfRow(30, -47, tier, 18, "Z")
+        shelfRow(-25, 47, tier, 20, "Z"); shelfRow(25, 47, tier, 20, "Z")
+        -- East/west walls: shelf runs along Z, wall normal is X
+        shelfRow(47, -20, tier, 18, "X"); shelfRow(47, 20, tier, 18, "X")
+        shelfRow(-47, -20, tier, 18, "X"); shelfRow(-47, 20, tier, 18, "X")
     end
 
     -- Work tables (4 around cauldron)
