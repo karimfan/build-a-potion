@@ -18,7 +18,7 @@ local function resolveForageDrop(player, nodeId)
     if not data then return nil end
 
     -- Get star count
-    local stars = data.BrewStats and data.BrewStats.TotalBrewed or 0
+    local stars = data.BrewStats and data.BrewStats.StarCount or data.BrewStats and data.BrewStats.TotalBrewed or 0
 
     -- Roll forage tier based on stars
     local rolledTier = ForageTuning.rollForageTier(stars)
@@ -79,7 +79,7 @@ Remotes.ForageNode.OnServerEvent:Connect(function(player, nodeId)
     if not data then return end
 
     -- Get star count for gating
-    local stars = data.BrewStats and data.BrewStats.TotalBrewed or 0
+    local stars = data.BrewStats and data.BrewStats.StarCount or data.BrewStats and data.BrewStats.TotalBrewed or 0
 
     -- Sub-zone node gating: check star threshold
     if not ForageTuning.isNodeUnlocked(nodeId, stars) then
@@ -229,7 +229,7 @@ local function spawnRareNode()
         if not data then return end
 
         -- Per-player star-scaled rare chance
-        local playerStars = data.BrewStats and data.BrewStats.TotalBrewed or 0
+        local playerStars = data.BrewStats and data.BrewStats.StarCount or data.BrewStats and data.BrewStats.TotalBrewed or 0
         local _, tierIdx = ForageTuning.getTierForStars(playerStars)
         local rareChance = ForageTuning.getRareNodeChance(tierIdx)
         local isRare = math.random() < rareChance

@@ -1,5 +1,14 @@
 local ForageTuning = {}
 
+-- Star weights by potion rarity (rarer brews = more stars)
+ForageTuning.StarWeights = {
+    Common = 1,
+    Uncommon = 2,
+    Rare = 5,
+    Mythic = 10,
+    Divine = 25,
+}
+
 -- Star tiers aligned with BrewTuning.EvolutionTiers
 -- Each tier: {threshold, commonWeight, uncommonWeight, rareWeight, tierName}
 ForageTuning.StarTiers = {
@@ -156,6 +165,23 @@ function ForageTuning.getBonusDisplay(starCount)
     else
         return tier.tierName .. " Forager", "Common drops"
     end
+end
+
+-- Compute weighted star count from PotionCounts
+-- Requires Potions config to resolve tiers
+function ForageTuning.computeStarCount(potionCounts, PotionsData)
+    if not potionCounts then return 0 end
+    local total = 0
+    for potionKey, count in pairs(potionCounts) do
+        local baseId = potionKey
+        local sep = potionKey:find("__")
+        if sep then baseId = potionKey:sub(1, sep - 1) end
+        local potion = PotionsData and PotionsData[baseId]
+        local tier = potion and potion.tier or "Common"
+        local weight = ForageTuning.StarWeights[tier] or 1
+        total = total + weight * count
+    end
+    return total
 end
 
 return ForageTuning

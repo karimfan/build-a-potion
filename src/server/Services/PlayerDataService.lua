@@ -21,6 +21,7 @@ local function getDefaultBrewStats()
         CurrentStreak = 0,
         BestStreak = 0,
         PotionCounts = {},
+        StarCount = 0,
     }
 end
 
@@ -136,6 +137,20 @@ local function migrateProfile(data)
     if not data.BrewStats.PotionCounts then data.BrewStats.PotionCounts = {} end
     if not data.BrewStats.CurrentStreak then data.BrewStats.CurrentStreak = 0 end
     if not data.BrewStats.BestStreak then data.BrewStats.BestStreak = 0 end
+    -- Compute weighted StarCount if missing (migration from flat TotalBrewed)
+    if not data.BrewStats.StarCount then
+        local ok, FT = pcall(require, RS.Shared.Config.ForageTuning)
+        if ok and FT and FT.computeStarCount then
+            local okP, PotionsConfig = pcall(require, RS.Shared.Config.Potions)
+            if okP and PotionsConfig then
+                data.BrewStats.StarCount = FT.computeStarCount(data.BrewStats.PotionCounts, PotionsConfig.Data)
+            else
+                data.BrewStats.StarCount = data.BrewStats.TotalBrewed or 0
+            end
+        else
+            data.BrewStats.StarCount = data.BrewStats.TotalBrewed or 0
+        end
+    end
     if not data.Score then data.Score = { TimePlayedMinutes = 0, TotalCoinsFromSelling = 0, BrewScoreCache = 0, MutationScoreCache = 0, CompositeScore = 0, LastLeaderboardWriteUnix = 0 } end
     if not data.Upgrades then data.Upgrades = { CauldronTier = 1, BrewStations = 1, StorageSlots = 20 } end
     if not data.DailyDemandState then data.DailyDemandState = { LastSoldDateKey = "", SoldPotionIds = {} } end

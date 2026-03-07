@@ -127,10 +127,11 @@ local function setBarrierLocked(zoneName, threshold)
     local barrier = findBarrier(zoneName)
     if not barrier then return end
     barrier.Transparency = 0.5
-    barrier.CanCollide = true
+    barrier.CanCollide = false  -- never physically block (server validates gating)
     -- Update or create lock label
     local bb = barrier:FindFirstChild("LockGui")
     if bb then
+        bb.Enabled = true
         local label = bb:FindFirstChild("LockLabel")
         if label then label.Text = threshold .. " Stars Required" end
     end
@@ -139,6 +140,9 @@ end
 local function dissolveBarrier(zoneName, animated)
     local barrier = findBarrier(zoneName)
     if not barrier then return end
+    -- Hide the lock label
+    local bb = barrier:FindFirstChild("LockGui")
+    if bb then bb.Enabled = false end
     if animated then
         -- Play unlock particle burst
         local burst = Instance.new("ParticleEmitter")
@@ -238,7 +242,7 @@ end
 
 Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(data)
     if not data or not data.BrewStats then return end
-    local newStars = data.BrewStats.TotalBrewed or 0
+    local newStars = data.BrewStats.StarCount or data.BrewStats.TotalBrewed or 0
     local animated = currentStars > 0 and newStars > currentStars
     currentStars = newStars
     updateForageBadge(newStars)
@@ -256,7 +260,7 @@ task.spawn(function()
         return Remotes.GetPlayerData:InvokeServer()
     end)
     if ok and data and data.BrewStats then
-        currentStars = data.BrewStats.TotalBrewed or 0
+        currentStars = data.BrewStats.StarCount or data.BrewStats.TotalBrewed or 0
         updateForageBadge(currentStars)
         updateSubZones(currentStars, false) -- no animation on load
     end

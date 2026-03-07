@@ -5,6 +5,7 @@ local Potions = require(RS.Shared.Config.Potions)
 local BrewTuning = require(RS.Shared.Config.BrewTuning)
 local Types = require(RS.Shared.Types)
 local MutationTuning = require(RS.Shared.Config.MutationTuning)
+local ForageTuning = require(RS.Shared.Config.ForageTuning)
 local Remotes = RS.Remotes
 
 local BrewStatus = Types.BrewStatus
@@ -251,6 +252,9 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
     stats.TotalBrewed = (stats.TotalBrewed or 0) + 1
     stats.TotalValueBrewed = (stats.TotalValueBrewed or 0) + sellValue
     stats.PotionCounts[finalPotionKey] = (stats.PotionCounts[finalPotionKey] or 0) + 1
+
+    -- Recompute weighted star count
+    stats.StarCount = ForageTuning.computeStarCount(stats.PotionCounts, Potions.Data)
 
     -- Streak logic
     if potionId == "sludge" then
