@@ -22,6 +22,7 @@ local stageEmitters = {}
 local originalCauldronCFrame = nil
 
 local bubbleSound, rumbleSound, thunderSound, completionSound, swooshSound, chimeSound
+local mysticAmbientSound, cauldronBubbleAmbient, epicWhooshSound, mysticalPadSound
 local fireBurstSounds = {}
 local lastFireBurstTime = 0
 local lastThunderTime = 0
@@ -405,34 +406,91 @@ local function setupEmitters()
     })
 end
 
--- === SOUND EFFECTS (all IDs verified working in Studio) ===
+-- === AMBIENT CAULDRON AUDIO (always playing near cauldron) ===
+local function setupAmbientAudio()
+    if not cauldron then return end
+    -- Kill old ambient sounds
+    for _, d in ipairs(cauldron:GetChildren()) do
+        if d:IsA("Sound") and (d.Name == "MysticAmbient" or d.Name == "CauldronBubbleAmbient") then
+            d:Destroy()
+        end
+    end
+
+    -- Mystical ambient music loop — enchanting pad that plays always
+    mysticAmbientSound = Instance.new("Sound")
+    mysticAmbientSound.Name = "MysticAmbient"
+    mysticAmbientSound.SoundId = "rbxassetid://1837849285"  -- 166s mystical ambient
+    mysticAmbientSound.Looped = true
+    mysticAmbientSound.Volume = 0.15
+    mysticAmbientSound.PlaybackSpeed = 0.85
+    mysticAmbientSound.RollOffMaxDistance = 50
+    mysticAmbientSound.RollOffMinDistance = 8
+    mysticAmbientSound.Parent = cauldron
+    mysticAmbientSound:Play()
+
+    -- Cauldron bubbling ambient — deep bubbling always
+    cauldronBubbleAmbient = Instance.new("Sound")
+    cauldronBubbleAmbient.Name = "CauldronBubbleAmbient"
+    cauldronBubbleAmbient.SoundId = "rbxassetid://1848354536"  -- 97s cauldron bubble
+    cauldronBubbleAmbient.Looped = true
+    cauldronBubbleAmbient.Volume = 0.2
+    cauldronBubbleAmbient.PlaybackSpeed = 0.9
+    cauldronBubbleAmbient.RollOffMaxDistance = 40
+    cauldronBubbleAmbient.RollOffMinDistance = 5
+    cauldronBubbleAmbient.Parent = cauldron
+    cauldronBubbleAmbient:Play()
+end
+
+-- === BREW SOUND EFFECTS (play during active brewing) ===
 local function setupSounds()
     if not cauldron then return end
     cleanupSounds()
 
-    -- Bubbling cauldron loop (swim ambience pitched up)
+    -- Intensified bubbling loop (layered on top of ambient during brew)
     bubbleSound = Instance.new("Sound")
     bubbleSound.Name = "BrewBubble"
     bubbleSound.SoundId = "rbxasset://sounds/action_swim.mp3"
     bubbleSound.Looped = true
     bubbleSound.Volume = 0
-    bubbleSound.PlaybackSpeed = 1.4
+    bubbleSound.PlaybackSpeed = 1.6
     bubbleSound.RollOffMaxDistance = 60
     bubbleSound.RollOffMinDistance = 5
     bubbleSound.Parent = cauldron
 
-    -- Deep rumble/roar loop (falling wind pitched way down)
+    -- Deep rumble/roar loop — escalating power
     rumbleSound = Instance.new("Sound")
     rumbleSound.Name = "BrewRumble"
     rumbleSound.SoundId = "rbxasset://sounds/action_falling.mp3"
     rumbleSound.Looped = true
     rumbleSound.Volume = 0
-    rumbleSound.PlaybackSpeed = 0.4
+    rumbleSound.PlaybackSpeed = 0.35
     rumbleSound.RollOffMaxDistance = 80
     rumbleSound.RollOffMinDistance = 5
     rumbleSound.Parent = cauldron
 
-    -- Thunder crack for lightning at high progress
+    -- Epic whoosh loop — builds energy during mid-brew
+    epicWhooshSound = Instance.new("Sound")
+    epicWhooshSound.Name = "BrewEpicWhoosh"
+    epicWhooshSound.SoundId = "rbxassetid://9112854440"  -- 56s epic whoosh
+    epicWhooshSound.Looped = true
+    epicWhooshSound.Volume = 0
+    epicWhooshSound.PlaybackSpeed = 1.0
+    epicWhooshSound.RollOffMaxDistance = 70
+    epicWhooshSound.RollOffMinDistance = 5
+    epicWhooshSound.Parent = cauldron
+
+    -- Mystical pad stinger — short magical accent
+    mysticalPadSound = Instance.new("Sound")
+    mysticalPadSound.Name = "BrewMysticalPad"
+    mysticalPadSound.SoundId = "rbxassetid://1843115950"  -- 6s mystical pad
+    mysticalPadSound.Looped = false
+    mysticalPadSound.Volume = 0
+    mysticalPadSound.PlaybackSpeed = 1.0
+    mysticalPadSound.RollOffMaxDistance = 60
+    mysticalPadSound.RollOffMinDistance = 5
+    mysticalPadSound.Parent = cauldron
+
+    -- Thunder crack for rare+ brews at high progress
     thunderSound = Instance.new("Sound")
     thunderSound.Name = "BrewThunder"
     thunderSound.SoundId = "rbxassetid://142070127"
@@ -442,65 +500,85 @@ local function setupSounds()
     thunderSound.RollOffMinDistance = 5
     thunderSound.Parent = cauldron
 
-    -- Fire burst one-shots (random during fire phase)
-    for i = 1, 3 do
+    -- Fire burst one-shots (5 variants for more chaos)
+    for i = 1, 5 do
         local fb = Instance.new("Sound")
         fb.Name = "BrewFireBurst_" .. i
         fb.SoundId = "rbxassetid://130113370"
         fb.Looped = false
-        fb.Volume = 0.4
-        fb.PlaybackSpeed = 0.8 + math.random() * 0.4
+        fb.Volume = 0.5
+        fb.PlaybackSpeed = 0.7 + math.random() * 0.6
         fb.RollOffMaxDistance = 50
         fb.RollOffMinDistance = 5
         fb.Parent = cauldron
         table.insert(fireBurstSounds, fb)
     end
 
-    -- Completion swoosh
+    -- Completion swoosh — big dramatic release
     swooshSound = Instance.new("Sound")
     swooshSound.Name = "BrewSwoosh"
     swooshSound.SoundId = "rbxassetid://2865227271"
     swooshSound.Looped = false
-    swooshSound.Volume = 0.8
-    swooshSound.PlaybackSpeed = 1.2
+    swooshSound.Volume = 1.0
+    swooshSound.PlaybackSpeed = 1.1
     swooshSound.RollOffMaxDistance = 100
     swooshSound.RollOffMinDistance = 5
     swooshSound.Parent = cauldron
 
-    -- Completion magical burst
+    -- Completion magical burst — the big payoff
     completionSound = Instance.new("Sound")
     completionSound.Name = "BrewComplete"
     completionSound.SoundId = "rbxassetid://9125402735"
     completionSound.Looped = false
-    completionSound.Volume = 1
-    completionSound.RollOffMaxDistance = 100
+    completionSound.Volume = 1.2
+    completionSound.RollOffMaxDistance = 120
     completionSound.RollOffMinDistance = 5
     completionSound.Parent = cauldron
 
-    -- Completion chime
+    -- Completion chime — magical success ring
     chimeSound = Instance.new("Sound")
     chimeSound.Name = "BrewChime"
     chimeSound.SoundId = "rbxassetid://169380525"
     chimeSound.Looped = false
-    chimeSound.Volume = 0.7
-    chimeSound.PlaybackSpeed = 0.8
+    chimeSound.Volume = 0.8
+    chimeSound.PlaybackSpeed = 0.75
     chimeSound.RollOffMaxDistance = 80
     chimeSound.RollOffMinDistance = 5
     chimeSound.Parent = cauldron
+
+    -- Mystical hum accent — plays at brew start
+    local humSound = Instance.new("Sound")
+    humSound.Name = "BrewHum"
+    humSound.SoundId = "rbxassetid://4590657391"  -- 1.1s mystical hum
+    humSound.Looped = false
+    humSound.Volume = 0.6
+    humSound.PlaybackSpeed = 0.7
+    humSound.RollOffMaxDistance = 60
+    humSound.RollOffMinDistance = 5
+    humSound.Parent = cauldron
 end
 
 function cleanupSounds()
+    -- Clean brew-specific sounds (NOT ambient — those stay)
     if bubbleSound and bubbleSound.Parent then bubbleSound:Destroy() end
     if rumbleSound and rumbleSound.Parent then rumbleSound:Destroy() end
     if thunderSound and thunderSound.Parent then thunderSound:Destroy() end
     if completionSound and completionSound.Parent then completionSound:Destroy() end
     if swooshSound and swooshSound.Parent then swooshSound:Destroy() end
     if chimeSound and chimeSound.Parent then chimeSound:Destroy() end
+    if epicWhooshSound and epicWhooshSound.Parent then epicWhooshSound:Destroy() end
+    if mysticalPadSound and mysticalPadSound.Parent then mysticalPadSound:Destroy() end
     for _, fb in ipairs(fireBurstSounds) do
         if fb and fb.Parent then fb:Destroy() end
     end
+    -- Clean any hum sounds
+    if cauldron then
+        local hum = cauldron:FindFirstChild("BrewHum")
+        if hum then hum:Destroy() end
+    end
     bubbleSound, rumbleSound, thunderSound = nil, nil, nil
     completionSound, swooshSound, chimeSound = nil, nil, nil
+    epicWhooshSound, mysticalPadSound = nil, nil
     fireBurstSounds = {}
     lastFireBurstTime = 0
     lastThunderTime = 0
@@ -606,45 +684,89 @@ local function updateBrewVFX(pct, mult)
     -- VOID FLARE: from 75%+ on mythic/divine
     if voidFlareE then voidFlareE.Rate = (mult >= 3 and pct >= 0.75) and (25 + (pct - 0.75) * 400 * (mult / 3)) or 0 end
 
-    -- SOUNDS: bubbling loop scales with progress
+    -- === SOUNDS: Full orchestrated audio that escalates with brew progress ===
+
+    -- Ramp up ambient sounds during brewing for intensity
+    if mysticAmbientSound then
+        mysticAmbientSound.Volume = 0.15 + pct * 0.25 * math.min(mult, 2)
+        mysticAmbientSound.PlaybackSpeed = 0.85 + pct * 0.15
+    end
+    if cauldronBubbleAmbient then
+        cauldronBubbleAmbient.Volume = 0.2 + pct * 0.4 * math.min(mult, 2)
+        cauldronBubbleAmbient.PlaybackSpeed = 0.9 + pct * 0.3
+    end
+
+    -- Layer 1: Intensified bubbling (always during brew, escalates)
     if bubbleSound then
-        bubbleSound.Volume = 0.1 + pct * 0.6 * math.min(mult, 2)
-        bubbleSound.PlaybackSpeed = 1.4 + pct * 0.6
+        bubbleSound.Volume = 0.15 + pct * 0.7 * math.min(mult, 2)
+        bubbleSound.PlaybackSpeed = 1.6 + pct * 0.8
         if not bubbleSound.IsPlaying then bubbleSound:Play() end
     end
-    -- Rumble loop from 30%+
+
+    -- Layer 2: Deep rumble from 20%+ (power building)
     if rumbleSound then
-        if pct >= 0.3 then
-            rumbleSound.Volume = (pct - 0.3) * 0.5 * math.min(mult, 2)
-            rumbleSound.PlaybackSpeed = 0.3 + pct * 0.2
+        if pct >= 0.2 then
+            rumbleSound.Volume = (pct - 0.2) * 0.6 * math.min(mult, 2)
+            rumbleSound.PlaybackSpeed = 0.35 + pct * 0.25
             if not rumbleSound.IsPlaying then rumbleSound:Play() end
         else
             rumbleSound.Volume = 0
         end
     end
-    -- Random fire burst one-shots during fire phase
-    if pct >= 0.4 and #fireBurstSounds > 0 then
+
+    -- Layer 3: Epic whoosh loop from 30%+ (energy swirling)
+    if epicWhooshSound then
+        if pct >= 0.3 then
+            epicWhooshSound.Volume = (pct - 0.3) * 0.5 * math.min(mult, 2)
+            epicWhooshSound.PlaybackSpeed = 0.8 + pct * 0.4
+            if not epicWhooshSound.IsPlaying then epicWhooshSound:Play() end
+        else
+            epicWhooshSound.Volume = 0
+        end
+    end
+
+    -- Layer 4: Mystical pad stinger at key moments (25%, 50%, 75%)
+    if mysticalPadSound and not mysticalPadSound.IsPlaying then
+        if (pct >= 0.25 and pct < 0.27) or (pct >= 0.50 and pct < 0.52) or (pct >= 0.75 and pct < 0.77) then
+            mysticalPadSound.Volume = 0.4 + pct * 0.4 * math.min(mult, 2)
+            mysticalPadSound.PlaybackSpeed = 0.8 + pct * 0.4
+            mysticalPadSound:Play()
+        end
+    end
+
+    -- Layer 5: Fire burst one-shots from 35%+ (increasingly frantic)
+    if pct >= 0.35 and #fireBurstSounds > 0 then
         local now = tick()
-        local interval = math.max(0.5, 3 - pct * 2.5)
+        local interval = math.max(0.3, 2.5 - pct * 2.2)
         if now - lastFireBurstTime > interval then
             local fb = fireBurstSounds[math.random(1, #fireBurstSounds)]
             if fb and not fb.IsPlaying then
-                fb.Volume = 0.3 + pct * 0.4
+                fb.Volume = 0.35 + pct * 0.5
                 fb.PlaybackSpeed = 0.7 + math.random() * 0.6
                 fb:Play()
             end
             lastFireBurstTime = now
         end
     end
-    -- Thunder crack at 70%+ for rare+
-    if mult >= 2 and pct >= 0.7 and thunderSound then
+
+    -- Layer 6: Thunder cracks from 60%+ for rare+, more frequent at high progress
+    if mult >= 1.5 and pct >= 0.6 and thunderSound then
         local now = tick()
-        local interval = math.max(1.5, 5 - pct * 4)
+        local interval = math.max(1, 4 - pct * 3.5)
         if now - lastThunderTime > interval then
-            thunderSound.Volume = 0.3 + (pct - 0.7) * 1.5 * math.min(mult, 3)
-            thunderSound.PlaybackSpeed = 0.8 + math.random() * 0.4
+            thunderSound.Volume = 0.4 + (pct - 0.6) * 2.0 * math.min(mult, 3)
+            thunderSound.PlaybackSpeed = 0.7 + math.random() * 0.5
             thunderSound:Play()
             lastThunderTime = now
+        end
+    end
+
+    -- Play brew start hum on first update
+    if pct < 0.05 then
+        local hum = cauldron and cauldron:FindFirstChild("BrewHum")
+        if hum and not hum.IsPlaying then
+            hum.Volume = 0.6
+            hum:Play()
         end
     end
 
@@ -735,15 +857,25 @@ local function playCompletionBurst(mult, rarity)
 
     playShockwave(math.clamp(mult, 1, 3), rarity)
 
-    -- Completion audio: swoosh + burst + chime layered
+    -- Completion audio: FULL DRAMATIC LAYERED PAYOFF
     if swooshSound then swooshSound:Play() end
     if completionSound then completionSound:Play() end
-    task.delay(0.3, function()
+    task.delay(0.2, function()
         if chimeSound then chimeSound:Play() end
     end)
-    if thunderSound and (rarity == "Mythic" or rarity == "Divine") then
-        thunderSound.Volume = 0.8
+    task.delay(0.1, function()
+        if mysticalPadSound then
+            mysticalPadSound.Volume = 0.8
+            mysticalPadSound.PlaybackSpeed = 1.2
+            mysticalPadSound:Play()
+        end
+    end)
+    if thunderSound and (rarity == "Rare" or rarity == "Mythic" or rarity == "Divine") then
+        thunderSound.Volume = 0.9
         thunderSound:Play()
+        task.delay(0.5, function()
+            if thunderSound then thunderSound.Volume = 0.7; thunderSound:Play() end
+        end)
     end
 
     -- INTENSE camera shake burst (decays over 0.8s)
@@ -797,6 +929,10 @@ local function playCompletionBurst(mult, rarity)
         if emberE then emberE.Rate = 0 end
         if bubbleSound then TweenService:Create(bubbleSound, TweenInfo.new(1), { Volume = 0 }):Play() end
         if rumbleSound then TweenService:Create(rumbleSound, TweenInfo.new(0.5), { Volume = 0 }):Play() end
+        if epicWhooshSound then TweenService:Create(epicWhooshSound, TweenInfo.new(1.5), { Volume = 0 }):Play() end
+        -- Restore ambient to normal levels
+        if mysticAmbientSound then TweenService:Create(mysticAmbientSound, TweenInfo.new(2), { Volume = 0.15, PlaybackSpeed = 0.85 }):Play() end
+        if cauldronBubbleAmbient then TweenService:Create(cauldronBubbleAmbient, TweenInfo.new(2), { Volume = 0.2, PlaybackSpeed = 0.9 }):Play() end
     end)
     task.delay(3.0, function()
         resetVFX()
@@ -873,6 +1009,14 @@ brewEvent.Event:Connect(function(action, data)
         isAnimating = false
         stopSpoonOrbit()
         resetVFX()
+    end
+end)
+
+-- Start ambient cauldron audio on load
+task.spawn(function()
+    task.wait(3)
+    if getShopRefs() then
+        setupAmbientAudio()
     end
 end)
 
