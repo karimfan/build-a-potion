@@ -30,9 +30,10 @@ local lastThunderTime = 0
 local function getShopRefs()
     local shop = workspace:FindFirstChild("Zones") and workspace.Zones:FindFirstChild("YourShop")
     if not shop then return false end
-    cauldron = shop:FindFirstChild("Cauldron")
-    cauldronLiquid = shop:FindFirstChild("CauldronLiquid")
-    spoon = shop:FindFirstChild("BrewingSpoon")
+    -- Cauldron may be direct child or inside CauldronModel
+    cauldron = shop:FindFirstChild("Cauldron") or shop:FindFirstChild("Cauldron", true)
+    cauldronLiquid = shop:FindFirstChild("CauldronLiquid") or shop:FindFirstChild("CauldronLiquid", true)
+    spoon = shop:FindFirstChild("BrewingSpoon") or shop:FindFirstChild("BrewingSpoon", true)
     if cauldron then cauldronGlow = cauldron:FindFirstChild("CauldronGlow") end
     return cauldron ~= nil
 end
