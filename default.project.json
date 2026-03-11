@@ -39,6 +39,9 @@
         },
         "WildGroveDecorationService": {
           "$path": "src/server/Services/WildGroveDecorationService.lua"
+        },
+        "ArenaService": {
+          "$path": "src/server/Services/ArenaService.lua"
         }
       }
     },
@@ -78,6 +81,9 @@
           },
           "ForageTuning": {
             "$path": "src/shared/Config/ForageTuning.lua"
+          },
+          "ArenaTuning": {
+            "$path": "src/shared/Config/ArenaTuning.lua"
           }
         }
       }
@@ -132,6 +138,9 @@
         },
         "GroveExpansionController": {
           "$path": "src/client/GroveExpansionController.client.lua"
+        },
+        "ArenaController": {
+          "$path": "src/client/ArenaController.client.lua"
         }
       }
     }
