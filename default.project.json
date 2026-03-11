@@ -42,6 +42,9 @@
         },
         "ArenaService": {
           "$path": "src/server/Services/ArenaService.lua"
+        },
+        "RobuxShopService": {
+          "$path": "src/server/Services/RobuxShopService.lua"
         }
       }
     },
@@ -84,6 +87,9 @@
           },
           "ArenaTuning": {
             "$path": "src/shared/Config/ArenaTuning.lua"
+          },
+          "RobuxShopTuning": {
+            "$path": "src/shared/Config/RobuxShopTuning.lua"
           }
         }
       }
@@ -141,6 +147,9 @@
         },
         "ArenaController": {
           "$path": "src/client/ArenaController.client.lua"
+        },
+        "RobuxShopController": {
+          "$path": "src/client/RobuxShopController.client.lua"
         }
       }
     }

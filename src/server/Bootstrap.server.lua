@@ -16,6 +16,7 @@ local requiredServices = {
     "ZoneService",
     "WildGroveDecorationService",
     "ArenaService",
+    "RobuxShopService",
 }
 
 for _, serviceName in ipairs(requiredServices) do

@@ -218,6 +218,13 @@ Remotes.ClaimBrewResult.OnServerInvoke = function(player)
             mutChance = math.min(mutChance + tierData.mutationBonus, 0.20)
         end
     end
+    -- Check for Mutation Charm (Robux shop purchase)
+    local hasMutationCharm = data.Charms and data.Charms.MutationGuarantee
+    if hasMutationCharm then
+        mutChance = 1.0  -- Guaranteed mutation
+        -- Consume the charm
+        data.Charms.MutationGuarantee = nil
+    end
     if potionId ~= "sludge" and math.random() <= mutChance then
         -- Stage 2: Which mutation?
         mutation = MutationTuning.rollMutationType()
