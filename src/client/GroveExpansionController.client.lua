@@ -6,7 +6,7 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local Remotes = RS:WaitForChild("Remotes")
-local ForageTuning = require(RS.Shared.Config.ForageTuning)
+local ForageTuning = require(RS.Shared:WaitForChild("Config"):WaitForChild("ForageTuning"))
 
 local currentStars = 0
 local previousUnlocks = {} -- track which zones were already unlocked
