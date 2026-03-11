@@ -1,9 +1,9 @@
 -- PotionDisplayController: Renders brewed potions as visual vials on shop shelves
 local RS = game:GetService("ReplicatedStorage")
-local Remotes = RS.Remotes
-local Potions = require(RS.Shared.Config.Potions)
-local PDT = require(RS.Shared.Config.PotionDisplayTuning)
-local Ingredients = require(RS.Shared.Config.Ingredients)
+local Remotes = RS:WaitForChild("Remotes")
+local Potions = require(RS:WaitForChild("Shared"):WaitForChild("Config"):WaitForChild("Potions"))
+local PDT = require(RS.Shared.Config:WaitForChild("PotionDisplayTuning"))
+local Ingredients = require(RS.Shared.Config:WaitForChild("Ingredients"))
 
 local player = game.Players.LocalPlayer
 local displayedParts = {}
