@@ -98,10 +98,10 @@
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
-        "Brightness": 1.2,
+        "Brightness": 1,
         "ClockTime": 19.5,
         "GeographicLatitude": -6.19,
-        "ExposureCompensation": 0.7,
+        "ExposureCompensation": 0,
         "Ambient": [90, 75, 60],
         "OutdoorAmbient": [110, 95, 75],
         "ColorShift_Top": [255, 235, 200],
