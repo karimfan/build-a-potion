@@ -1,5 +1,4 @@
 local Workspace = game:GetService("Workspace")
-
 local RNG_SEED = 28042026
 local DECOR_FOLDER_NAME = "MysticalDecor"
 local SHOP_DECOR_FOLDER_NAME = "WizardDecor"
@@ -396,12 +395,15 @@ local function tuneCauldron()
         Handle = Color3.fromRGB(200, 160, 55),
     }
     local goldDefault = Color3.fromRGB(185, 145, 55)
-    local cauldronScale = 0.48
+    local cauldronScale = 0.75
+
+    -- All shop decor is built at world origin; platform top is Y=2.4 centered at (0, _, -8)
+    local platformTopY = 2.4
+    local platformX, platformZ = 0, -8
 
     if cauldron:IsA("BasePart") then
-        local oldY = cauldron.Size.Y
         cauldron.Size = Vector3.new(cauldron.Size.X * cauldronScale, cauldron.Size.Y * cauldronScale, cauldron.Size.Z * cauldronScale)
-        cauldron.Position = cauldron.Position - Vector3.new(0, (oldY - cauldron.Size.Y) * 0.5, 0)
+        cauldron.Position = Vector3.new(platformX, platformTopY + cauldron.Size.Y * 0.5, platformZ)
         cauldron.Material = Enum.Material.Metal
         cauldron.Color = goldDefault
         cauldron.Reflectance = 0.25
@@ -424,6 +426,20 @@ local function tuneCauldron()
                     d.Reflectance = 0
                 else
                     d.Color = c
+                end
+            end
+        end
+        -- Move scaled cauldron onto the platform at world origin
+        local bounds = cauldron:GetExtentsSize()
+        local targetCF = CFrame.new(platformX, platformTopY + bounds.Y * 0.5, platformZ)
+        if cauldron.PrimaryPart then
+            cauldron:PivotTo(targetCF)
+        else
+            local _, currentCenter = cauldron:GetBoundingBox()
+            local offset = targetCF.Position - currentCenter.Position
+            for _, d in ipairs(cauldron:GetDescendants()) do
+                if d:IsA("BasePart") then
+                    d.Position = d.Position + offset
                 end
             end
         end
@@ -600,6 +616,16 @@ local function createWizardShopDecor()
     local decor = Instance.new("Folder")
     decor.Name = SHOP_DECOR_FOLDER_NAME
     decor.Parent = yourShop
+
+    -- Invisible collision floor so the player can walk around the shop at world origin
+    local shopFloor = Instance.new("Part")
+    shopFloor.Name = "Tile"  -- named Tile so disableAllCollision preserves it
+    shopFloor.Size = Vector3.new(120, 1, 120)
+    shopFloor.Position = Vector3.new(0, -0.5, -8)
+    shopFloor.Anchored = true
+    shopFloor.CanCollide = true
+    shopFloor.Transparency = 1
+    shopFloor.Parent = decor
 
     local potionColors = {
         Color3.fromRGB(30,120,255), Color3.fromRGB(50,220,100), Color3.fromRGB(160,60,255),

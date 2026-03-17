@@ -14,37 +14,37 @@
       "Services": {
         "$className": "Folder",
         "PlayerDataService": {
-          "$path": "src/server/Services/PlayerDataService.lua"
+          "$path": "src/server/Services/PlayerDataService.server.lua"
         },
         "MarketService": {
-          "$path": "src/server/Services/MarketService.lua"
+          "$path": "src/server/Services/MarketService.server.lua"
         },
         "EconomyService": {
-          "$path": "src/server/Services/EconomyService.lua"
+          "$path": "src/server/Services/EconomyService.server.lua"
         },
         "BrewingService": {
-          "$path": "src/server/Services/BrewingService.lua"
+          "$path": "src/server/Services/BrewingService.server.lua"
         },
         "ZoneService": {
-          "$path": "src/server/Services/ZoneService.lua"
+          "$path": "src/server/Services/ZoneService.server.lua"
         },
         "ScoreService": {
-          "$path": "src/server/Services/ScoreService.lua"
+          "$path": "src/server/Services/ScoreService.server.lua"
         },
         "LeaderboardService": {
-          "$path": "src/server/Services/LeaderboardService.lua"
+          "$path": "src/server/Services/LeaderboardService.server.lua"
         },
         "DailyDemandService": {
-          "$path": "src/server/Services/DailyDemandService.lua"
+          "$path": "src/server/Services/DailyDemandService.server.lua"
         },
         "WildGroveDecorationService": {
-          "$path": "src/server/Services/WildGroveDecorationService.lua"
+          "$path": "src/server/Services/WildGroveDecorationService.server.lua"
         },
         "ArenaService": {
-          "$path": "src/server/Services/ArenaService.lua"
+          "$path": "src/server/Services/ArenaService.server.lua"
         },
         "RobuxShopService": {
-          "$path": "src/server/Services/RobuxShopService.lua"
+          "$path": "src/server/Services/RobuxShopService.server.lua"
         }
       }
     },
@@ -98,14 +98,14 @@
     "Lighting": {
       "$className": "Lighting",
       "$properties": {
-        "Brightness": 1.2,
+        "Brightness": 1,
         "ClockTime": 19.5,
         "GeographicLatitude": -6.19,
-        "ExposureCompensation": 0.7,
-        "Ambient": [90, 75, 60],
-        "OutdoorAmbient": [110, 95, 75],
-        "ColorShift_Top": [255, 235, 200],
-        "ColorShift_Bottom": [70, 60, 50],
+        "ExposureCompensation": 0,
+        "Ambient": [0.353, 0.294, 0.235],
+        "OutdoorAmbient": [0.431, 0.373, 0.294],
+        "ColorShift_Top": [1.0, 0.922, 0.784],
+        "ColorShift_Bottom": [0.275, 0.235, 0.196],
         "EnvironmentDiffuseScale": 1,
         "EnvironmentSpecularScale": 1
       }
