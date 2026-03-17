@@ -560,7 +560,10 @@ local function setupSounds()
 end
 
 function cleanupSounds()
-    -- Clean brew-specific sounds (NOT ambient — those stay)
+    -- Clean all sounds including ambient
+    if mysticAmbientSound and mysticAmbientSound.Parent then mysticAmbientSound:Destroy() end
+    if cauldronBubbleAmbient and cauldronBubbleAmbient.Parent then cauldronBubbleAmbient:Destroy() end
+    mysticAmbientSound, cauldronBubbleAmbient = nil, nil
     if bubbleSound and bubbleSound.Parent then bubbleSound:Destroy() end
     if rumbleSound and rumbleSound.Parent then rumbleSound:Destroy() end
     if thunderSound and thunderSound.Parent then thunderSound:Destroy() end
@@ -931,9 +934,9 @@ local function playCompletionBurst(mult, rarity)
         if bubbleSound then TweenService:Create(bubbleSound, TweenInfo.new(1), { Volume = 0 }):Play() end
         if rumbleSound then TweenService:Create(rumbleSound, TweenInfo.new(0.5), { Volume = 0 }):Play() end
         if epicWhooshSound then TweenService:Create(epicWhooshSound, TweenInfo.new(1.5), { Volume = 0 }):Play() end
-        -- Restore ambient to normal levels
-        if mysticAmbientSound then TweenService:Create(mysticAmbientSound, TweenInfo.new(2), { Volume = 0.15, PlaybackSpeed = 0.85 }):Play() end
-        if cauldronBubbleAmbient then TweenService:Create(cauldronBubbleAmbient, TweenInfo.new(2), { Volume = 0.2, PlaybackSpeed = 0.9 }):Play() end
+        -- Fade out ambient sounds (resetVFX will stop them fully)
+        if mysticAmbientSound then TweenService:Create(mysticAmbientSound, TweenInfo.new(2), { Volume = 0 }):Play() end
+        if cauldronBubbleAmbient then TweenService:Create(cauldronBubbleAmbient, TweenInfo.new(2), { Volume = 0 }):Play() end
     end)
     task.delay(3.0, function()
         resetVFX()
@@ -959,6 +962,10 @@ function resetVFX()
     resetCameraShake()
     if bubbleSound and bubbleSound.IsPlaying then bubbleSound:Stop() end
     if rumbleSound and rumbleSound.IsPlaying then rumbleSound:Stop() end
+    if epicWhooshSound and epicWhooshSound.IsPlaying then epicWhooshSound:Stop() end
+    -- Stop ambient audio when brew ends
+    if mysticAmbientSound and mysticAmbientSound.IsPlaying then mysticAmbientSound:Stop() end
+    if cauldronBubbleAmbient and cauldronBubbleAmbient.IsPlaying then cauldronBubbleAmbient:Stop() end
     cleanupSounds()
 end
 
@@ -967,6 +974,7 @@ local function runBrewAnimation(duration, endUnix, rarity)
     if not getShopRefs() then return end
     setupEmitters()
     setupSounds()
+    setupAmbientAudio()
     isAnimating = true
 
     if cauldron then
@@ -995,7 +1003,7 @@ local function runBrewAnimation(duration, endUnix, rarity)
 
         if pct >= 1 then
             conn:Disconnect()
-            playCompletionBurst(mult, rarity)
+            playCompletionBurst(mult, rarity)  -- schedules resetVFX after 3s internally
             isAnimating = false
             stopSpoonOrbit()
         end
@@ -1013,13 +1021,7 @@ brewEvent.Event:Connect(function(action, data)
     end
 end)
 
--- Start ambient cauldron audio on load
-task.spawn(function()
-    task.wait(3)
-    if getShopRefs() then
-        setupAmbientAudio()
-    end
-end)
+-- Ambient cauldron audio is started by runBrewAnimation, not on load
 
 -- Also check on load for active brew (reconnect scenario)
 task.spawn(function()

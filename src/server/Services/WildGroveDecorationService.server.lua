@@ -397,8 +397,8 @@ local function tuneCauldron()
     local goldDefault = Color3.fromRGB(185, 145, 55)
     local cauldronScale = 0.75
 
-    -- All shop decor is built at world origin; platform top is Y=2.4 centered at (0, _, -8)
-    local platformTopY = 2.4
+    -- Shop floor top is at Y=0; cauldron sits on the ground at world origin
+    local platformTopY = 0
     local platformX, platformZ = 0, -8
 
     if cauldron:IsA("BasePart") then
@@ -617,14 +617,19 @@ local function createWizardShopDecor()
     decor.Name = SHOP_DECOR_FOLDER_NAME
     decor.Parent = yourShop
 
-    -- Invisible collision floor so the player can walk around the shop at world origin
+    -- Large cobblestone shop floor — sits above LegoGround tiles to prevent Z-fighting
     local shopFloor = Instance.new("Part")
     shopFloor.Name = "Tile"  -- named Tile so disableAllCollision preserves it
-    shopFloor.Size = Vector3.new(120, 1, 120)
-    shopFloor.Position = Vector3.new(0, -0.5, -8)
+    shopFloor.Size = Vector3.new(500, 2, 500)
+    shopFloor.Position = Vector3.new(0, -0.9, -8)
     shopFloor.Anchored = true
     shopFloor.CanCollide = true
-    shopFloor.Transparency = 1
+    shopFloor.Transparency = 0
+    shopFloor.Material = Enum.Material.Cobblestone
+    shopFloor.Color = Color3.fromRGB(140, 125, 105)
+    shopFloor.TopSurface = Enum.SurfaceType.Smooth
+    shopFloor.BottomSurface = Enum.SurfaceType.Smooth
+    shopFloor.CastShadow = false
     shopFloor.Parent = decor
 
     local potionColors = {
@@ -647,14 +652,7 @@ local function createWizardShopDecor()
         end
     end
 
-    -- Raised cauldron platform (3 concentric rings)
-    local pc = Color3.fromRGB(60, 50, 42)
-    makePart(decor, { Name="Platform_Outer", Shape=Enum.PartType.Cylinder, Size=Vector3.new(1.2, 16, 16),
-        CFrame=CFrame.new(0, 0.6, -8)*CFrame.Angles(0,0,math.rad(90)), Material=Enum.Material.Cobblestone, Color=pc })
-    makePart(decor, { Name="Platform_Mid", Shape=Enum.PartType.Cylinder, Size=Vector3.new(1.8, 12, 12),
-        CFrame=CFrame.new(0, 0.9, -8)*CFrame.Angles(0,0,math.rad(90)), Material=Enum.Material.Cobblestone, Color=Color3.fromRGB(65,55,45) })
-    makePart(decor, { Name="Platform_Inner", Shape=Enum.PartType.Cylinder, Size=Vector3.new(2.4, 8, 8),
-        CFrame=CFrame.new(0, 1.2, -8)*CFrame.Angles(0,0,math.rad(90)), Material=Enum.Material.Cobblestone, Color=Color3.fromRGB(70,58,48) })
+    -- Cauldron platform removed — cauldron sits directly on the flat shop floor
 
     -- Gothic arch portal behind cauldron
     local ac = Color3.fromRGB(60, 50, 68)
@@ -1412,11 +1410,55 @@ local function buildMysticalGrove()
     end
 
     tuneGlobalGround()
+
+    -- Hide LegoGround tiles that overlap with the shop decor at origin
+    local legoGround = Workspace:FindFirstChild("Zones") and Workspace.Zones:FindFirstChild("LegoGround")
+    if legoGround then
+        for _, tile in ipairs(legoGround:GetChildren()) do
+            if tile:IsA("BasePart") then
+                local pos = tile.Position
+                -- Hide tiles within the shop area (250 studs from origin in each direction)
+                if math.abs(pos.X) < 100 and math.abs(pos.Z + 8) < 100 then
+                    tile.Transparency = 1
+                end
+            end
+        end
+    end
+
     createWizardShopDecor()
     tuneCauldron()
     createIngredientMarketDecor()
     createTradingPostDecor()
     disableAllCollision()
+
+    -- Re-enable cauldron collision so the player can't walk through it
+    local yourShop = findYourShop()
+    if yourShop then
+        local cauldronModel = yourShop:FindFirstChild("Cauldron")
+        if cauldronModel then
+            for _, d in ipairs(cauldronModel:GetDescendants()) do
+                if d:IsA("BasePart") and d.Name ~= "CauldronLiquid" and d.Name ~= "BubbleAnchor" then
+                    d.CanCollide = true
+                end
+            end
+        end
+    end
+
+    -- Hide ZoneTransition parts that overlap with the shop decor at origin
+    task.spawn(function()
+        local transitions = Workspace:WaitForChild("ZoneTransitions", 10)
+        if transitions then
+            for _, folder in ipairs(transitions:GetChildren()) do
+                for _, part in ipairs(folder:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Transparency = 1
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end
+    end)
+
     print("[WildGroveDecorationService] Mystical decor generated")
 end
 
