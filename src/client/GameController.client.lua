@@ -89,6 +89,25 @@ end
 
 -- Wire up nav buttons
 local navContainer = topNav.NavContainer
+
+-- Add Arena button if it doesn't exist
+if not navContainer:FindFirstChild("Nav_Arena") then
+    local arenaBtn = Instance.new("TextButton")
+    arenaBtn.Name = "Nav_Arena"
+    arenaBtn.Text = "Arena"
+    arenaBtn.Size = UDim2.new(0, 85, 0, 26)
+    arenaBtn.BackgroundColor3 = Color3.fromRGB(160, 50, 50)
+    arenaBtn.TextColor3 = Color3.new(1, 1, 1)
+    arenaBtn.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
+    arenaBtn.TextSize = 13
+    arenaBtn.LayoutOrder = 5
+    arenaBtn.AutoButtonColor = true
+    arenaBtn.BorderSizePixel = 0
+    arenaBtn.Parent = navContainer
+    local corner = Instance.new("UICorner")
+    corner.Parent = arenaBtn
+end
+
 for _, btn in ipairs(navContainer:GetChildren()) do
     if btn:IsA("TextButton") then
         local zoneName = btn.Name:gsub("Nav_", "")

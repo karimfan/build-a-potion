@@ -632,6 +632,7 @@ local function createWizardShopDecor()
     shopFloor.CastShadow = false
     shopFloor.Parent = decor
 
+
     local potionColors = {
         Color3.fromRGB(30,120,255), Color3.fromRGB(50,220,100), Color3.fromRGB(160,60,255),
         Color3.fromRGB(255,200,50), Color3.fromRGB(255,60,60), Color3.fromRGB(255,120,200),
