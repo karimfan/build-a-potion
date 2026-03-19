@@ -11,6 +11,9 @@
       "FallSafety": {
         "$path": "src/server/FallSafety.server.lua"
       },
+      "FixZoneSounds": {
+        "$path": "src/server/FixZoneSounds.server.lua"
+      },
       "Services": {
         "$className": "Folder",
         "PlayerDataService": {
