@@ -560,7 +560,7 @@ local function setupSounds()
 end
 
 function cleanupSounds()
-    -- Clean all sounds including ambient
+    -- Clean tracked references
     if mysticAmbientSound and mysticAmbientSound.Parent then mysticAmbientSound:Destroy() end
     if cauldronBubbleAmbient and cauldronBubbleAmbient.Parent then cauldronBubbleAmbient:Destroy() end
     mysticAmbientSound, cauldronBubbleAmbient = nil, nil
@@ -575,10 +575,13 @@ function cleanupSounds()
     for _, fb in ipairs(fireBurstSounds) do
         if fb and fb.Parent then fb:Destroy() end
     end
-    -- Clean any hum sounds
+    -- Nuclear cleanup: destroy ALL Sound children on cauldron to catch orphans
     if cauldron then
-        local hum = cauldron:FindFirstChild("BrewHum")
-        if hum then hum:Destroy() end
+        for _, child in ipairs(cauldron:GetChildren()) do
+            if child:IsA("Sound") then
+                child:Destroy()
+            end
+        end
     end
     bubbleSound, rumbleSound, thunderSound = nil, nil, nil
     completionSound, swooshSound, chimeSound = nil, nil, nil
@@ -939,7 +942,7 @@ local function playCompletionBurst(mult, rarity)
         if cauldronBubbleAmbient then TweenService:Create(cauldronBubbleAmbient, TweenInfo.new(2), { Volume = 0 }):Play() end
     end)
     task.delay(3.0, function()
-        resetVFX()
+        pcall(resetVFX)
     end)
 end
 
@@ -1006,6 +1009,14 @@ local function runBrewAnimation(duration, endUnix, rarity)
             playCompletionBurst(mult, rarity)  -- schedules resetVFX after 3s internally
             isAnimating = false
             stopSpoonOrbit()
+            -- Safety net: force-kill any orphan sounds after 6s
+            task.delay(6, function()
+                if cauldron then
+                    for _, child in ipairs(cauldron:GetChildren()) do
+                        if child:IsA("Sound") then child:Destroy() end
+                    end
+                end
+            end)
         end
     end)
 end
@@ -1017,7 +1028,7 @@ brewEvent.Event:Connect(function(action, data)
     elseif action == "stop" then
         isAnimating = false
         stopSpoonOrbit()
-        resetVFX()
+        pcall(resetVFX)
     end
 end)
 

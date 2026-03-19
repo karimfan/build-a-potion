@@ -71,9 +71,9 @@ end
 -- Base node rarity-bucketed pools (reclassified from original ZoneService pools)
 -- Nodes 1-12: existing pools split by rarity
 ForageTuning.NodePools = {
-    ForageNode_1  = { common = {"mushroom", "willow_bark", "snail_slime"} },
-    ForageNode_2  = { common = {"river_water", "rainwater", "snail_slime"} },
-    ForageNode_3  = { common = {"fern_leaf", "mint_sprig", "dandelion_puff"} },
+    ForageNode_1  = { common = {"mushroom", "willow_bark", "snail_slime", "shimmer_moss"} },
+    ForageNode_2  = { common = {"river_water", "rainwater", "snail_slime", "shimmer_moss"} },
+    ForageNode_3  = { common = {"fern_leaf", "mint_sprig", "dandelion_puff", "shimmer_moss"} },
     ForageNode_4  = { common = {"cobweb_strand", "charcoal_chunk", "pebble_dust"} },
     ForageNode_5  = { common = {"acorn_cap", "pebble_dust", "willow_bark"} },
     ForageNode_6  = { common = {"clay_mud", "honey_drop", "firefly_glow"} },

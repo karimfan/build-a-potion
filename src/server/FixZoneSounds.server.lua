@@ -47,5 +47,12 @@ task.defer(function()
         end
     end
 
-    print("[FixZoneAssets] Patched sounds and rug positions")
+    -- Fix YourShop SpawnPoint: baked position is off at (-248, 11, -310),
+    -- but shop decorations are at world origin
+    local spawnPt = resolvePath("Workspace.Zones.YourShop.SpawnPoint")
+    if spawnPt then
+        spawnPt.Position = Vector3.new(5, 1, -5)
+    end
+
+    print("[FixZoneAssets] Patched sounds, rugs, and shop spawn")
 end)

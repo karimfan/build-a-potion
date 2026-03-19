@@ -131,6 +131,19 @@ Ingredients.Data = {
         acquisition = { market = true, forage = true, robuxProductId = nil },
     },
     -- ============================================================
+    -- COMMON TIER (star-gated test)
+    -- ============================================================
+    shimmer_moss = {
+        id = "shimmer_moss", name = "Shimmer Moss", tier = "Common",
+        element = "Light", cost = 15, description = "Glows faintly, only visible to experienced alchemists.",
+        marketChance = 0, affinity = "Harmonious",
+        freshness = { shelfLifeHours = 24 },
+        visual = { archetype = "mushroom", primaryColor = {120, 220, 180}, secondaryColor = {80, 180, 140}, material = "Neon", emissive = true, particleRate = 2 },
+        acquisition = { market = false, forage = true, robuxProductId = nil },
+        requiredStars = 1,
+    },
+
+    -- ============================================================
     -- UNCOMMON TIER (14) - 50-60% chance, mystical reagents
     -- ============================================================
     moonpetal = {

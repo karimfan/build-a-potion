@@ -66,6 +66,9 @@ end)
 task.spawn(function()
     myData = Remotes.GetPlayerData:InvokeServer()
     updateHud()
+    if myData and myData.BrewStats and starLabel then
+        starLabel.Text = tostring(myData.BrewStats.StarCount or 0)
+    end
 end)
 
 -- ========== ZONE NAVIGATION ==========
@@ -390,13 +393,47 @@ task.spawn(function()
     end
 end)
 
--- ========== SCORE HUD ==========
+-- ========== STAR HUD ==========
+-- Hide the old CompositeScore frame (baked in .rbxl) and replace with StarCount
 local scoreFrame = hudGui:FindFirstChild("ScoreFrame")
+if scoreFrame then
+    scoreFrame.Visible = false
+end
+
+-- Reuse the same position for star count
+local starFrame = Instance.new("Frame")
+starFrame.Name = "StarFrame"
+starFrame.Size = UDim2.new(0, 100, 0, 32)
+starFrame.Position = UDim2.new(0, 10, 0, 10)
+starFrame.BackgroundColor3 = Color3.fromRGB(50, 40, 20)
+starFrame.BackgroundTransparency = 0.3
+starFrame.Parent = hudGui
+Instance.new("UICorner", starFrame).CornerRadius = UDim.new(0, 8)
+
+local starIcon = Instance.new("TextLabel")
+starIcon.Name = "StarIcon"
+starIcon.Size = UDim2.new(0, 25, 1, 0)
+starIcon.Position = UDim2.new(0, 5, 0, 0)
+starIcon.BackgroundTransparency = 1
+starIcon.Text = "⭐"
+starIcon.TextScaled = true
+starIcon.Parent = starFrame
+
+local starLabel = Instance.new("TextLabel")
+starLabel.Name = "StarLabel"
+starLabel.Size = UDim2.new(1, -35, 1, 0)
+starLabel.Position = UDim2.new(0, 30, 0, 0)
+starLabel.BackgroundTransparency = 1
+starLabel.Text = "0"
+starLabel.TextColor3 = Color3.fromRGB(255, 215, 100)
+starLabel.TextScaled = true
+starLabel.Font = Enum.Font.GothamBold
+starLabel.TextXAlignment = Enum.TextXAlignment.Left
+starLabel.Parent = starFrame
 
 Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(data)
-    if data and scoreFrame then
-        local score = data.Score and data.Score.CompositeScore or 0
-        scoreFrame.ScoreLabel.Text = tostring(score)
+    if data and data.BrewStats then
+        starLabel.Text = tostring(data.BrewStats.StarCount or 0)
     end
 end)
 

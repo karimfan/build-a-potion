@@ -10,6 +10,20 @@ local forageCooldowns = {}
 
 -- ========== STAR-SCALED REGULAR FORAGE ==========
 
+-- Filter a pool to only ingredients the player has enough stars for
+local function filterPool(pool, stars)
+    if not pool then return nil end
+    local filtered = {}
+    for _, id in ipairs(pool) do
+        local ingData = Ingredients.Data[id]
+        if not ingData or not ingData.requiredStars or stars >= ingData.requiredStars then
+            table.insert(filtered, id)
+        end
+    end
+    if #filtered == 0 then return nil end
+    return filtered
+end
+
 -- Resolve a forage drop using star-scaled probability tables
 local function resolveForageDrop(player, nodeId)
     local pds = _G.PlayerDataService
@@ -29,7 +43,7 @@ local function resolveForageDrop(player, nodeId)
 
     -- Try to pick from the rolled tier's pool
     if rolledTier == "Rare" then
-        local pool = pools.rare
+        local pool = filterPool(pools.rare, stars)
         if pool and #pool > 0 then
             return pool[math.random(1, #pool)]
         end
@@ -42,20 +56,21 @@ local function resolveForageDrop(player, nodeId)
     end
 
     if rolledTier == "Uncommon" then
-        local pool = pools.uncommon
+        local pool = filterPool(pools.uncommon, stars)
         if pool and #pool > 0 then
             return pool[math.random(1, #pool)]
         end
         -- Fallback: try global uncommon pool
-        if #ForageTuning.UncommonForagePool > 0 then
-            return ForageTuning.UncommonForagePool[math.random(1, #ForageTuning.UncommonForagePool)]
+        local globalPool = filterPool(ForageTuning.UncommonForagePool, stars)
+        if globalPool and #globalPool > 0 then
+            return globalPool[math.random(1, #globalPool)]
         end
         -- Final fallback to common
         rolledTier = "Common"
     end
 
     -- Common (default)
-    local pool = pools.common
+    local pool = filterPool(pools.common, stars)
     if pool and #pool > 0 then
         return pool[math.random(1, #pool)]
     end

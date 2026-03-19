@@ -322,6 +322,9 @@ local function startBrewTimer(duration, endTime)
         end
         if remaining <= 0 then
             if brewTimerConnection then brewTimerConnection:Disconnect() brewTimerConnection = nil end
+            -- Signal VFX to stop audio/effects
+            local brewEvent = game.ReplicatedStorage:FindFirstChild("BrewStateEvent")
+            if brewEvent then brewEvent:Fire("stop") end
             task.spawn(function()
                 local claimResult = Remotes.ClaimBrewResult:InvokeServer()
                 isBrewing = false
