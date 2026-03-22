@@ -149,7 +149,7 @@ Remotes.PlayerDataUpdate.OnClientEvent:Connect(function(newData)
                 if id == "sludge" then
                     color = Color3.fromRGB(150, 150, 100)
                 end
-                showPopup("Brewed: " .. name, color, 0.08)
+                -- Potion brew feedback removed (was showing over player)
             end
         end
         
